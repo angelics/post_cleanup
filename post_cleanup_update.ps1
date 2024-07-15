@@ -32,6 +32,8 @@ function Write-Log {
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
 
+# https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
+# https://github.com/inode64/WindowsClearCache
 #------------------------------------------------------------------#
 #- Clear-GlobalWindowsCache                                        #
 #------------------------------------------------------------------#
@@ -485,7 +487,4 @@ if (Test-Path $RegistryPath) {
 }
 
 # Wait for user confirmation
-# Read-Host -Prompt "Press Enter to restart the computer..."
-
-# Restart the computer
-Restart-Computer -Force
+Read-Host -Prompt "Press Enter to restart the computer..."
