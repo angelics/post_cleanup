@@ -269,26 +269,21 @@ Function Clear-MicrosoftOfficeCacheFiles
     }
 }
 
+Write-Output "y" | winget upgrade
+winget pin add --id Discord.Discord --blocking
+Write-Log "winget pin Discord.Discord"
+Start-Sleep -Seconds 1
+winget pin add --id Microsoft.DevHome --blocking
+Write-Log "winget pin Microsoft.DevHome"
+Start-Sleep -Seconds 1
+winget pin add --id Cisco.Webex --blocking
+Write-Log "winget pin Cisco.Webex"
+Start-Sleep -Seconds 1
+winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+
 Clear-UserCacheFiles
 Clear-GlobalWindowsCache
-
-Write-Output "Checking internet connection"
-if (-not (Test-Connection -ComputerName www.google.com.my -Count 1 -Quiet)) {
-    Write-Log "no internet"
-} else {
-    Write-Output "y" | winget upgrade
-    winget pin add --id Discord.Discord --blocking
-	Write-Log "winget pin Discord.Discord"
-    Start-Sleep -Seconds 1
-    winget pin add --id Microsoft.DevHome --blocking
-	Write-Log "winget pin Microsoft.DevHome"
-    Start-Sleep -Seconds 1
-    winget pin add --id Cisco.Webex --blocking
-	Write-Log "winget pin Cisco.Webex"
-    Start-Sleep -Seconds 1
-    winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
-	Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
-}
 
 # Clear console history
 $ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
