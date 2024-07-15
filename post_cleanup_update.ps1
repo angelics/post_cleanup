@@ -406,30 +406,28 @@ Write-Log "Clear Documents"
 
 # Show Taskbar
 $RegistryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
-$RegistryProperty = "Settings"
 
 # Get the current settings
 $currentSettings = Get-ItemProperty -Path $RegistryPath
 
 # Update the settings value (index 8) to 2
-$currentSettings.$RegistryProperty[8] = 2
+$currentSettings.Settings[8] = 2
 
 # Set the updated settings back to the registry
-Set-ItemProperty -Path $RegistryPath -Name $RegistryProperty -Value $currentSettings.$RegistryProperty
+Set-ItemProperty -Path $RegistryPath -Name Settings -Value $currentSettings.Settings
 Write-Log "Show Taskbar"
 
 # Show Desktop Icons script
 $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-$RegistryProperty = "HideIcons"
 
 # Get the current settings
 $currentSettings = Get-ItemProperty -Path $RegistryPath
 
 # Update the HideIcons value to 0
-$currentSettings.$RegistryProperty = 0
+$currentSettings.HideIcons = 0
 
 # Set the updated settings back to the registry
-Set-ItemProperty -Path $RegistryPath -Name $RegistryProperty -Value $currentSettings.$RegistryProperty
+Set-ItemProperty -Path $RegistryPath -Name HideIcons -Value $currentSettings.HideIcons
 Write-Log "Show Desktop Icons"
 
 # Set wallpaper based on manufacturer
