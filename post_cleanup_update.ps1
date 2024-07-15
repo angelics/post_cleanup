@@ -295,6 +295,12 @@ if (Test-Path $ConsoleHistory) {
 }
 
 # Clear File Explorer Home history
+$RecentFolder = "$env:APPDATA\Microsoft\Windows\Recent"
+if (Test-Path -Path $RecentFolder) {
+    Remove-Item -Path $RecentFolder -Recurse -Force -ErrorAction SilentlyContinue
+	Write-Log "Clear File Explorer Home history"
+}
+
 $AutomaticDestinationsFolder = "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
 if (Test-Path -Path $AutomaticDestinationsFolder) {
     Remove-Item -Path $AutomaticDestinationsFolder -Recurse -Force -ErrorAction SilentlyContinue
@@ -378,23 +384,6 @@ Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propert
 # Clear PanelPath0 from FM settings
 $propertyName = 'PanelPath0'
 Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
-
-Function Clear-RecentItems {
-    $Namespace = "shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}"
-    $QuickAccess = New-Object -ComObject shell.application
-    $RecentFiles = $QuickAccess.Namespace($Namespace).Items()
-    $RecentFiles | % {$_.InvokeVerb("remove")}
-
-    Remove-Item -Force "${env:USERPROFILE}\AppData\Roaming\Microsoft\Windows\Recent\*.lnk"
-	Write-Log "Clear recent shortcuts"
-	
-    New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_TrackDocs" -Value 0 -PropertyType DWORD
-	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-	$propertyName = 'Start_TrackDocs'
-	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
-}
-
-Clear-RecentItems
 
 # Clear Notepad history
 Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\*" -Force
