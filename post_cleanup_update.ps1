@@ -26,6 +26,35 @@ function Write-Log {
     Add-Content -Path $log -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
 }
 
+taskkill /f /im explorer.exe
+Write-Log "Task killed: explorer.exe"
+
+# Show Taskbar
+$RegistryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+
+# Get the current settings
+$currentSettings = Get-ItemProperty -Path $RegistryPath
+
+# Update the settings value (index 8) to 2
+$currentSettings.Settings[8] = 2
+
+# Set the updated settings back to the registry
+Set-ItemProperty -Path $RegistryPath -Name Settings -Value $currentSettings.Settings
+Write-Log "Show Taskbar"
+
+# Show Desktop Icons script
+$RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+
+# Get the current settings
+$currentSettings = Get-ItemProperty -Path $RegistryPath
+
+# Update the HideIcons value to 0
+$currentSettings.HideIcons = 0
+
+# Set the updated settings back to the registry
+Set-ItemProperty -Path $RegistryPath -Name HideIcons -Value $currentSettings.HideIcons
+Write-Log "Show Desktop Icons"
+
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
 #------------------------------------------------------------------#
@@ -403,32 +432,6 @@ Write-Log "Clear Videos"
 $DocumentsFolder = "$env:USERPROFILE\Documents"
 Get-ChildItem -Path $DocumentsFolder -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 Write-Log "Clear Documents"
-
-# Show Taskbar
-$RegistryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
-
-# Get the current settings
-$currentSettings = Get-ItemProperty -Path $RegistryPath
-
-# Update the settings value (index 8) to 2
-$currentSettings.Settings[8] = 2
-
-# Set the updated settings back to the registry
-Set-ItemProperty -Path $RegistryPath -Name Settings -Value $currentSettings.Settings
-Write-Log "Show Taskbar"
-
-# Show Desktop Icons script
-$RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-
-# Get the current settings
-$currentSettings = Get-ItemProperty -Path $RegistryPath
-
-# Update the HideIcons value to 0
-$currentSettings.HideIcons = 0
-
-# Set the updated settings back to the registry
-Set-ItemProperty -Path $RegistryPath -Name HideIcons -Value $currentSettings.HideIcons
-Write-Log "Show Desktop Icons"
 
 # Set wallpaper based on manufacturer
 $Manufacturers = @(
