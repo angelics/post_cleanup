@@ -1,20 +1,17 @@
 $log = "C:\Windows\Logs\araid\araid_post.log"
+
+# Get the directory of the original log file
+$logDirectory = Split-Path -Path $log -Parent
+
 $newLog = "C:\Windows\Logs\post.log"
 
 # Check if the original log file exists
-if (Test-Path -Path $log -PathType Leaf) {
-    # Get the directory of the original log file
-    $logDirectory = Split-Path -Path $log -Parent
-
-    # Check if the log directory exists, if not, create it
-    if (-not (Test-Path -Path $logDirectory -PathType Container)) {
-        New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
-        Write-Host "Created log directory: $logDirectory"
-    }
-
+if (Test-Path -Path $logDirectory) {
     # Delete the existing log file
+	if (Test-Path -Path $log) {
     Remove-Item -Path $log -Force
     Write-Host "Deleted existing log file: $log"
+	}
 } else {
     # Change log file path to the new log file path
     $log = $newLog
@@ -28,9 +25,6 @@ function Write-Log {
     )
     Add-Content -Path $log -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
 }
-
-taskkill /f /im explorer.exe
-Write-Log "Task killed: explorer.exe"
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
