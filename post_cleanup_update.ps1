@@ -411,17 +411,32 @@ Get-ChildItem -Path $DocumentsFolder -Recurse | Remove-Item -Recurse -Force -Err
 Write-Log "Clear Documents"
 
 # Show Taskbar
-$path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+$RegistryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+$RegistryProperty = "Settings"
 
 # Get the current settings
-$currentSettings = Get-ItemProperty -Path $path
+$currentSettings = Get-ItemProperty -Path $RegistryPath
 
 # Update the settings value (index 8) to 2
-$currentSettings.Settings[8] = 2
+$currentSettings.$RegistryProperty[8] = 2
 
 # Set the updated settings back to the registry
-Set-ItemProperty -Path $path -Name Settings -Value $currentSettings.Settings
+Set-ItemProperty -Path $RegistryPath -Name $RegistryProperty -Value $currentSettings.$RegistryProperty
 Write-Log "Show Taskbar"
+
+# Show Desktop Icons script
+$RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+$RegistryProperty = "HideIcons"
+
+# Get the current settings
+$currentSettings = Get-ItemProperty -Path $RegistryPath
+
+# Update the HideIcons value to 0
+$currentSettings.$RegistryProperty = 0
+
+# Set the updated settings back to the registry
+Set-ItemProperty -Path $RegistryPath -Name $RegistryProperty -Value $currentSettings.$RegistryProperty
+Write-Log "Show Desktop Icons"
 
 # Set wallpaper based on manufacturer
 $Manufacturers = @(
@@ -454,36 +469,6 @@ foreach ($manufacturer in $Manufacturers) {
 		Write-Log "successfully changed wallpaper with $manufacturer"
         break
     }
-}
-
-# Show Desktop Icons script
-$RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-$RegistryProperty = "HideIcons"
-$DefaultValue = 0
-
-# Check if the registry path exists
-if (Test-Path $RegistryPath) {
-    try {
-        # Get the current value of HideIcons property
-        $CurrentValue = (Get-ItemProperty -Path $RegistryPath -Name $RegistryProperty -ErrorAction Stop).$RegistryProperty
-
-        # Check if the value exists and is not equal to the default value
-        if ($CurrentValue -eq $null -or $CurrentValue -ne $DefaultValue) {
-            # Set the registry value to the default (0) if it doesn't exist or is incorrect
-            New-ItemProperty -Path $RegistryPath -Name $RegistryProperty -Value $DefaultValue -PropertyType DWORD -Force | Out-Null
-            Write-Host "Set $RegistryProperty to $DefaultValue in registry."
-            Write-Log "Set $RegistryProperty to $DefaultValue in registry."
-        } else {
-            Write-Host "$RegistryProperty is already set to $DefaultValue in registry."
-            Write-Log "$RegistryProperty is already set to $DefaultValue in registry."
-        }
-    } catch {
-        Write-Host "Failed to access or modify registry path ${RegistryPath}: $_"
-        Write-Log "Failed to access or modify registry path {$RegistryPath}: $_"
-    }
-} else {
-    Write-Host "Registry path $RegistryPath does not exist."
-    Write-Log "Registry path $RegistryPath does not exist."
 }
 
 # Wait for user confirmation
