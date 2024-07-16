@@ -345,7 +345,19 @@ Function Clear-MicrosoftOfficeCacheFiles
     }
 }
 
+$response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
+
+$FilePath = "$env:systemroot\Logs\packages.json"
+
+Set-Content -Path $FilePath -Value $response
+
 Write-Output "y" | winget upgrade
+
+winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity
+Write-Log "install default packages that should have"
+
+Remove-Item -Path $FilePath
+
 winget pin add --id Discord.Discord --blocking
 Write-Log "winget pin Discord.Discord"
 Start-Sleep -Seconds 1
