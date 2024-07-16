@@ -82,11 +82,11 @@ $value = 0
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Turn Off Show Files from Office.com in File Explorer Home for Current User"
 
-$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-$propertyName = 'DisableGraphRecentItems'
-$value = 1
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
+#$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+#$propertyName = 'DisableGraphRecentItems'
+#$value = 1
+#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+#Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
 
 $registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $propertyName = 'LaunchTo'
