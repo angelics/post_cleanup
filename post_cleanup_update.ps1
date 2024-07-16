@@ -112,6 +112,9 @@ Function Clear-GlobalWindowsCache
     Remove-Dir "C:\tmp"
     Remove-Dir "C:\$Recycle.Bin"
     Remove-Dir "C:\Windows\Prefetch"
+    Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
+    Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
+    Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
     C:\Windows\System32\rundll32.exe InetCpl.cpl, ClearMyTracksByProcess 4351
 
 }
@@ -372,25 +375,6 @@ $ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleH
 if (Test-Path $ConsoleHistory) {
     Remove-Item -Path $ConsoleHistory -Force
     Write-Log "Clear console history"
-}
-
-# Clear File Explorer Home history
-$RecentFolder = "$env:APPDATA\Microsoft\Windows\Recent"
-if (Test-Path -Path $RecentFolder) {
-    Remove-Item -Path $RecentFolder -Recurse -Force -ErrorAction SilentlyContinue
-	Write-Log "Clear File Explorer Home history"
-}
-
-$AutomaticDestinationsFolder = "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
-if (Test-Path -Path $AutomaticDestinationsFolder) {
-    Remove-Item -Path $AutomaticDestinationsFolder -Recurse -Force -ErrorAction SilentlyContinue
-	Write-Log "removed $AutomaticDestinationsFolder -recurse"
-}
-
-$CustomDestinationsFolder = "$env:APPDATA\Microsoft\Windows\CustomDestinations"
-if (Test-Path -Path $CustomDestinationsFolder) {
-    Remove-Item -Path $CustomDestinationsFolder -Recurse -Force -ErrorAction SilentlyContinue
-	Write-Log "removed $CustomDestinationsFolder -recurse"
 }
 
 function Remove-RegistryPathAndLog {
