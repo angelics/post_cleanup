@@ -47,9 +47,9 @@ $propertyName = 'Settings'
 $currentSettings = Get-ItemProperty -Path $RegistryPath
 
 # Update the settings value (index 8) to 2
-$currentSettings.$propertyName[8] = 2
+$currentSettings.Settings[8] = 2
 
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.$propertyName
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.Settings
 Write-Log "Show Taskbar"
 
 # Show Desktop Icons script
