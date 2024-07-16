@@ -71,22 +71,46 @@ Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -va
 Write-Log "Show Desktop Icons"
 
 # Turn Off "Recent Items" and "Frequent Places" for Current User
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-$propertyName = 'Start_TrackDocs'
-$value = 0
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Turn Off Recent Items and Frequent Places for Current User"
+#$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+#$propertyName = 'Start_TrackDocs'
+#$value = 0
+#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+#Write-Log "Turn Off Recent Items and Frequent Places for Current User"
 
 # Disable "Recent Items" and "Frequent Places" for All Users
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-$propertyName = 'NoRecentDocsHistory'
+#$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+#$propertyName = 'NoRecentDocsHistory'
+#$value = 1
+#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+#$registryPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+#$propertyName = 'NoRecentDocsHistory'
+#$value = 1
+#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+#Write-Log "Disable Recent Items and Frequent Places for All Users"
+
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
+$propertyName = 'ShowRecent'
+$value = 0
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+Write-Log "Remove Recent in File Explorer Home"
+
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
+$propertyName = 'ShowFrequent'
+$value = 0
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+Write-Log "Remove Frequent Folders in Quick Access in File Explorer Home"
+
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
+$propertyName = 'ShowCloudFilesInQuickAccess'
+$value = 0
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+Write-Log "Turn Off Show Files from Office.com in File Explorer Home for Current User"
+
+$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+$propertyName = 'DisableGraphRecentItems'
 $value = 1
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-$registryPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-$propertyName = 'NoRecentDocsHistory'
-$value = 1
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Disable Recent Items and Frequent Places for All Users"
+Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
