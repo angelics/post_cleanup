@@ -70,24 +70,6 @@ $value = 0
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Show Desktop Icons"
 
-# Turn Off "Recent Items" and "Frequent Places" for Current User
-#$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-#$propertyName = 'Start_TrackDocs'
-#$value = 0
-#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-#Write-Log "Turn Off Recent Items and Frequent Places for Current User"
-
-# Disable "Recent Items" and "Frequent Places" for All Users
-#$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-#$propertyName = 'NoRecentDocsHistory'
-#$value = 1
-#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-#$registryPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
-#$propertyName = 'NoRecentDocsHistory'
-#$value = 1
-#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-#Write-Log "Disable Recent Items and Frequent Places for All Users"
-
 $registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
 $propertyName = 'ShowRecent'
 $value = 0
@@ -117,6 +99,12 @@ $propertyName = 'LaunchTo'
 $value = 1
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Open File Explorer to This PC"
+
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$propertyName = 'Hidden'
+$value = 1
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+Write-Log "Show hidden files, folders and drives"
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
