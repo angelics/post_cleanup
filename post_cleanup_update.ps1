@@ -112,6 +112,12 @@ $value = 1
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
 
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$propertyName = 'LaunchTo'
+$value = 1
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+Write-Log "Open File Explorer to This PC"
+
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
 #------------------------------------------------------------------#
