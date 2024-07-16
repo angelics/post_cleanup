@@ -521,5 +521,13 @@ foreach ($manufacturer in $Manufacturers) {
     }
 }
 
+#List all hidden devices
+$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'} 
+
+#loop through all hidden devices to remove them using pnputil
+ForEach($dev in $unknown_devs){
+	pnputil /remove-device $dev.InstanceId
+}
+
 # Wait for user confirmation
 Read-Host -Prompt "Press Enter to restart the computer..."
