@@ -34,7 +34,7 @@ Function Set-RegistryProperty
 	param(
         [Parameter(Mandatory = $true)][string]$registryPath,
         [Parameter(Mandatory = $true)][string]$propertyName,
-        [Parameter(Mandatory = $true)][string]$value
+        [Parameter(Mandatory = $true)][object]$value
     )
 	Set-ItemProperty -Path $registryPath -Name $propertyName -Value $currentSettings.propertyName -Force
 }
