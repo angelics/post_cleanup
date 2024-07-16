@@ -520,7 +520,7 @@ ForEach($dev in $unknown_devs){
     $arguments = "/remove-device $($dev.InstanceId)"
     
     # Start the process with hidden window style
-    Start-Process -WindowStyle Hidden -FilePath "pnputil.exe" -ArgumentList $arguments -NoNewWindow -Wait
+    Start-Process -WindowStyle Hidden -FilePath "pnputil.exe" -ArgumentList $arguments -Wait
 	
 	Write-Log "$($dev.InstanceId) has been removed"
 }
