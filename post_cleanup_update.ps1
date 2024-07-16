@@ -29,14 +29,25 @@ function Write-Log {
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
 
-Function Set-RegistryProperty
-{
-	param(
+Function Set-RegistryProperty {
+    param(
         [Parameter(Mandatory = $true)][string]$registryPath,
         [Parameter(Mandatory = $true)][string]$propertyName,
         [Parameter(Mandatory = $true)][object]$value
     )
-	Set-ItemProperty -Path $registryPath -Name $propertyName -Value $currentSettings.propertyName -Force
+
+    # Check if the registry path exists, if not create it
+    if (-not (Test-Path -Path $registryPath)) {
+        New-Item -Path $registryPath -Force | Out-Null
+    }
+
+    # Check if the registry property exists, if not create it
+    if (-not (Get-ItemProperty -Path $registryPath -Name $propertyName -ErrorAction SilentlyContinue)) {
+        New-ItemProperty -Path $registryPath -Name $propertyName -Value $value -PropertyType DWord -Force | Out-Null
+    } else {
+        # Set the property value in the registry
+        Set-ItemProperty -Path $registryPath -Name $propertyName -Value $value -Force
+    }
 }
 
 # Show Taskbar
