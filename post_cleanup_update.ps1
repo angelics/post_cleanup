@@ -466,8 +466,12 @@ $propertyName = 'PanelPath0'
 Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 # Clear Notepad history
-Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\*" -Force
+Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState\*" -Recurse -Force -ErrorAction SilentlyContinue
 Write-Log "Clear Notepad history"
+
+# Clear Microsoft Edge cache
+Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\*" -Recurse -Force -ErrorAction SilentlyContinue
+Write-Log "Clear Microsoft Edge cache"
 
 # Clear Downloads, Pictures, Music, Videos folders
 $DownloadsFolder = "$env:USERPROFILE\Downloads"
