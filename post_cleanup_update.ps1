@@ -124,7 +124,7 @@ Function Clear-GlobalWindowsCache
 #------------------------------------------------------------------#
 Function Clear-UserCacheFiles
 {
-    # Stop-BrowserSessions
+    Stop-BrowserSessions
     ForEach ($localUser in (Get-ChildItem "C:\users").Name)
     {
 		Clear-AcrobatCacheFiles $localUser
