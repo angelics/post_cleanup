@@ -50,13 +50,13 @@ Function Set-RegistryProperty
         [Parameter(Mandatory = $true)][string]$value
     )
 	# Get the current settings
-	$currentSettings = Get-ItemProperty -Path $RegistryPath
+	$currentSettings = Get-ItemProperty -Path $registryPath
 	$currentSettings.propertyName = $value
-	Set-ItemProperty -Path $RegistryPath -Name $propertyName -Value $currentSettings.propertyName -Force
+	Set-ItemProperty -Path $registryPath -Name $propertyName -Value $currentSettings.propertyName -Force
 }
 
 # Show Desktop Icons script
-$RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 $propertyName = 'HideIcons'
 $value = 0
 Set-RegistryProperty
