@@ -3,8 +3,6 @@ $log = "C:\Windows\Logs\araid\araid_post.log"
 # Get the directory of the original log file
 $logDirectory = Split-Path -Path $log -Parent
 
-$newLog = "C:\Windows\Logs\post.log"
-
 # Check if the original log file exists
 if (Test-Path -Path $logDirectory) {
     # Delete the existing log file
@@ -12,10 +10,6 @@ if (Test-Path -Path $logDirectory) {
     Remove-Item -Path $log -Force
     Write-Host "Deleted existing log file: $log"
 	}
-} else {
-    # Change log file path to the new log file path
-    $log = $newLog
-    Write-Host "Changed log file path to: $log"
 }
 
 # Function to log messages to the specified log file
@@ -538,7 +532,8 @@ $unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
 
 #loop through all hidden devices to remove them using pnputil
 ForEach($dev in $unknown_devs){
-	pnputil /remove-device $dev.InstanceId
+	pnputil /remove-device $dev.InstanceId /quiet
+	Write-Log "$($dev.InstanceId) has been removed"
 }
 
 # Wait for user confirmation
