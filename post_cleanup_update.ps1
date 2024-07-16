@@ -29,19 +29,6 @@ function Write-Log {
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
 
-# Show Taskbar
-$RegistryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
-
-# Get the current settings
-$currentSettings = Get-ItemProperty -Path $RegistryPath
-
-# Update the settings value (index 8) to 2
-$currentSettings.Settings[8] = 2
-
-# Set the updated settings back to the registry
-Set-ItemProperty -Path $RegistryPath -Name Settings -Value $currentSettings.Settings
-Write-Log "Show Taskbar"
-
 Function Set-RegistryProperty
 {
 	param(
@@ -49,35 +36,45 @@ Function Set-RegistryProperty
         [Parameter(Mandatory = $true)][string]$propertyName,
         [Parameter(Mandatory = $true)][string]$value
     )
-	# Get the current settings
-	$currentSettings = Get-ItemProperty -Path $registryPath
-	$currentSettings.propertyName = $value
 	Set-ItemProperty -Path $registryPath -Name $propertyName -Value $currentSettings.propertyName -Force
 }
+
+# Show Taskbar
+$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+$propertyName = 'Settings'
+
+# Get the current settings
+$currentSettings = Get-ItemProperty -Path $RegistryPath
+
+# Update the settings value (index 8) to 2
+$currentSettings.$propertyName[8] = 2
+
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.$propertyName
+Write-Log "Show Taskbar"
 
 # Show Desktop Icons script
 $registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 $propertyName = 'HideIcons'
 $value = 0
-Set-RegistryProperty
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Show Desktop Icons"
 
 # Turn Off "Recent Items" and "Frequent Places" for Current User
 $registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $propertyName = 'Start_TrackDocs'
 $value = 0
-Set-RegistryProperty
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Turn Off Recent Items and Frequent Places for Current User"
 
 # Disable "Recent Items" and "Frequent Places" for All Users
 $registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
 $propertyName = 'NoRecentDocsHistory'
 $value = 1
-Set-RegistryProperty
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 $registryPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
 $propertyName = 'NoRecentDocsHistory'
 $value = 1
-Set-RegistryProperty
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 Write-Log "Disable Recent Items and Frequent Places for All Users"
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
