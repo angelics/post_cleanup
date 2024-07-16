@@ -42,18 +42,43 @@ $currentSettings.Settings[8] = 2
 Set-ItemProperty -Path $RegistryPath -Name Settings -Value $currentSettings.Settings
 Write-Log "Show Taskbar"
 
+Function Set-RegistryProperty
+{
+	param(
+        [Parameter(Mandatory = $true)][string]$registryPath,
+        [Parameter(Mandatory = $true)][string]$propertyName,
+        [Parameter(Mandatory = $true)][string]$value
+    )
+	# Get the current settings
+	$currentSettings = Get-ItemProperty -Path $RegistryPath
+	$currentSettings.propertyName = $value
+	Set-ItemProperty -Path $RegistryPath -Name $propertyName -Value $currentSettings.propertyName -Force
+}
+
 # Show Desktop Icons script
 $RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-
-# Get the current settings
-$currentSettings = Get-ItemProperty -Path $RegistryPath
-
-# Update the HideIcons value to 0
-$currentSettings.HideIcons = 0
-
-# Set the updated settings back to the registry
-Set-ItemProperty -Path $RegistryPath -Name HideIcons -Value $currentSettings.HideIcons
+$propertyName = 'HideIcons'
+$value = 0
+Set-RegistryProperty
 Write-Log "Show Desktop Icons"
+
+# Turn Off "Recent Items" and "Frequent Places" for Current User
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$propertyName = 'Start_TrackDocs'
+$value = 0
+Set-RegistryProperty
+Write-Log "Turn Off Recent Items and Frequent Places for Current User"
+
+# Disable "Recent Items" and "Frequent Places" for All Users
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+$propertyName = 'NoRecentDocsHistory'
+$value = 1
+Set-RegistryProperty
+$registryPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+$propertyName = 'NoRecentDocsHistory'
+$value = 1
+Set-RegistryProperty
+Write-Log "Disable Recent Items and Frequent Places for All Users"
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
