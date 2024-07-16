@@ -353,8 +353,8 @@ Set-Content -Path $FilePath -Value $response
 
 Write-Output "y" | winget upgrade
 
-winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity
-Write-Log "install default packages that should have"
+winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade
+Write-Log "install default packages that should have without upgrade"
 
 Remove-Item -Path $FilePath
 
