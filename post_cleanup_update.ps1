@@ -3,21 +3,21 @@ $log = "C:\Windows\Logs\araid\araid_post.log"
 # Get the directory of the original log file
 $logDirectory = Split-Path -Path $log -Parent
 
-# Check if the original log file exists
-if (Test-Path -Path $logDirectory) {
-    # Delete the existing log file
-	if (Test-Path -Path $log) {
-    Remove-Item -Path $log -Force
-    Write-Host "Deleted existing log file: $log"
-	}
-}
-
 # Function to log messages to the specified log file
 function Write-Log {
     param(
         [string]$Message
     )
     Add-Content -Path $log -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
+}
+
+# Check if the original log file exists
+if (Test-Path -Path $logDirectory) {
+    # Delete the existing log file
+	if (Test-Path -Path $log) {
+    Remove-Item -Path $log -Force
+	Write-Log "Deleted existing log file: $log"
+	}
 }
 
 taskkill /f /im explorer.exe
