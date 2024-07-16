@@ -516,7 +516,12 @@ $unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
 
 #loop through all hidden devices to remove them using pnputil
 ForEach($dev in $unknown_devs){
-	pnputil /remove-device $dev.InstanceId /quiet
+	# Construct the command arguments
+    $arguments = "/remove-device $($dev.InstanceId)"
+    
+    # Start the process with hidden window style
+    Start-Process -WindowStyle Hidden -FilePath "pnputil.exe" -ArgumentList $arguments -NoNewWindow -Wait
+	
 	Write-Log "$($dev.InstanceId) has been removed"
 }
 
