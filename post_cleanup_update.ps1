@@ -360,13 +360,13 @@ Remove-Item -Path $FilePath
 
 winget pin add --id Discord.Discord --blocking
 Write-Log "winget pin Discord.Discord"
-Start-Sleep -Seconds 1
+
 winget pin add --id Microsoft.DevHome --blocking
 Write-Log "winget pin Microsoft.DevHome"
-Start-Sleep -Seconds 1
+
 winget pin add --id Cisco.Webex --blocking
 Write-Log "winget pin Cisco.Webex"
-Start-Sleep -Seconds 1
+
 winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
 Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
 
