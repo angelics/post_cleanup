@@ -57,7 +57,12 @@ $currentSettings.Settings[8] = 2
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.Settings
 Write-Log "Show Taskbar"
 
-# Show Desktop Icons script
+# Show Desktop Icons
+$registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop"
+$propertyName = 'FFlags'
+$value = 1075839524
+Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+
 $registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 $propertyName = 'HideIcons'
 $value = 0
