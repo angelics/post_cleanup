@@ -61,6 +61,10 @@ Write-Log "Show Taskbar"
 $registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop"
 $propertyName = 'FFlags'
 $value = 1075839524
+#1075839520 (Auto arrange icons = OFF and Align icons to grid = OFF) 
+#1075839521 (Auto arrange icons = ON and Align icons to grid = OFF) 
+#1075839524 (Auto arrange icons = OFF and Align icons to grid = ON) default
+#1075839525 (Auto arrange icons = ON and Align icons to grid = ON)
 Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 
 $registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
