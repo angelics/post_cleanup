@@ -124,6 +124,9 @@ Function Clear-GlobalWindowsCache
     Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
+    Remove-Dir "C:\Intel"
+    Remove-Dir "C:\AMD"
+    Remove-Dir "C:\NVIDIA"
     C:\Windows\System32\rundll32.exe InetCpl.cpl, ClearMyTracksByProcess 4351
 
 }
