@@ -127,7 +127,20 @@ Function Clear-GlobalWindowsCache
     Remove-Dir "C:\Intel"
     Remove-Dir "C:\AMD"
     Remove-Dir "C:\NVIDIA"
-    C:\Windows\System32\rundll32.exe InetCpl.cpl, ClearMyTracksByProcess 4351
+#1: Temporary Internet Files
+#2: Cookies
+#4: History
+#8: Form Data
+#16: Passwords
+#32: Phishing Filter Data
+#64: Web Page Recovery Data
+#128: Download History
+#256: Tracking Protection, ActiveX Filtering, and Do Not Track data
+#512: Browser Session Restore
+#1024: InPrivate Filtering Data
+#2048: Cached feeds and WebSlices
+#4096: Preferences
+    C:\Windows\System32\rundll32.exe InetCpl.cpl, ClearMyTracksByProcess 8191
 
 }
 
@@ -178,12 +191,12 @@ Function Clear-WindowsUserCacheFiles
 #------------------------------------------------------------------#
 Function Stop-BrowserSessions
 {
-    $activeBrowsers = Get-Process Firefox*, Chrome*, Edge*
-    ForEach ($browserProcess in $activeBrowsers)
+    $browserNames = @("firefox.exe", "chrome.exe", "msedge.exe")
+    ForEach ($browserName in $browserNames)
     {
         try
         {
-            $browserProcess.CloseMainWindow() | Out-Null
+            taskkill /f /im $browserName | Out-Null
         }
         catch
         {
@@ -233,11 +246,11 @@ Function Clear-ChromeTemplate
     {
         Write-Output "Clear cache $name"
         $possibleCachePaths = @("Cache", "Cache2\entries\", "ChromeDWriteFontCache", "Code Cache", "GPUCache", "JumpListIcons", "JumpListIconsOld", "Media Cache", "Service Worker", "Top Sites", "VisitedLinks", "Web Data", "Preferences", "Local Storage", "Session Storage", "Cookies", "Network")
-        $possibleCacheFiles = @("History", "History-journal", "Shortcuts", "Shortcuts-journal", "DIPS", "DIPS-journal")
         ForEach ($cachePath in $possibleCachePaths)
         {
             Remove-Dir "$path\$cachePath"
         }
+		$possibleCacheFiles = @("History", "History-journal", "Shortcuts", "Shortcuts-journal", "DIPS", "DIPS-journal")
 		ForEach ($cacheFile in $possibleCacheFiles)
         {
             Remove-File "$path\$cacheFile"
