@@ -273,7 +273,7 @@ Function Clear-MozillaTemplate {
         foreach ($profile in $profiles) {
             Write-Host "Clearing cache for profile: $($profile.Name)"
             $AppDataPath = $profile.FullName
-            $possibleCachePaths = @("cache", "cache2\entries", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage")
+            $possibleCachePaths = @("cache", "cache2\entries", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage", "sessionstore-backups")
             ForEach ($cachePath in $possibleCachePaths) {
                 Remove-Dir "$AppDataPath\$cachePath"
             }
