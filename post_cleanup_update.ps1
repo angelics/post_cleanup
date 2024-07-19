@@ -273,11 +273,11 @@ Function Clear-MozillaTemplate {
         foreach ($profile in $profiles) {
             Write-Host "Clearing cache for profile: $($profile.Name)"
             $AppDataPath = $profile.FullName
-            $possibleCachePaths = @("cache", "cache2\entries", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage", "sessionstore-backups")
+            $possibleCachePaths = @("cache", "cache2\entries", "cache2", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage", "sessionstore-backups", "jumpListCache", "thumbnails")
             ForEach ($cachePath in $possibleCachePaths) {
                 Remove-Dir "$AppDataPath\$cachePath"
             }
-			$possibleCacheFiles = @("places.sqlite-wal", "places.sqlite", "places.sqlite-shm")
+			$possibleCacheFiles = @("places.sqlite-wal", "places.sqlite", "places.sqlite-shm", "prefs.js")
             ForEach ($cacheFile in $possibleCacheFiles) {
                 Remove-File "$AppDataPath\$cacheFile"
             }
@@ -312,6 +312,7 @@ Function Clear-FirefoxCacheFiles
 {
     param([string]$user = $env:USERNAME)
     Clear-MozillaTemplate "C:\users\$user\AppData\Local\Mozilla\Firefox\Profiles" "Browser Mozilla Firefox"
+    Clear-MozillaTemplate "C:\users\$user\AppData\Roaming\Mozilla\Firefox\Profiles" "Browser Mozilla Firefox"
 }
 
 #------------------------------------------------------------------#
