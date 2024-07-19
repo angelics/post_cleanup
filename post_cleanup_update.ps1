@@ -197,6 +197,7 @@ Function Stop-BrowserSessions
         try
         {
             taskkill /f /im $browserName | Out-Null
+			Write-Log "Successfully terminated $browserName"
         }
         catch
         {
@@ -261,25 +262,24 @@ Function Clear-ChromeTemplate
 #------------------------------------------------------------------#
 #- Clear-MozillaTemplate                                           #
 #------------------------------------------------------------------#
-Function Clear-MozillaTemplate
-{
+Function Clear-MozillaTemplate {
     param(
         [Parameter(Mandatory = $true)][string]$path,
-        [Parameter(Mandatory = $true)][string]$name
+		[Parameter(Mandatory = $true)][string]$name
     )
 
-    if ((Test-Path $path))
-    {
-        Write-Output "Clear cache $name"
-        $AppDataPath = (Get-ChildItem "$path" | Where-Object { $_.Name -match "Default" }[0]).FullName
-        $possibleCachePaths = @("cache", "cache2\entries", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite")
-        ForEach ($cachePath in $possibleCachePaths)
-        {
-            Remove-Dir "$AppDataPath\$cachePath"
+    if (Test-Path $path) {
+        $profiles = Get-ChildItem $path | Where-Object { $_.Name -match "default" }
+        foreach ($profile in $profiles) {
+            Write-Host "Clearing cache for profile: $($profile.Name)"
+            $AppDataPath = $profile.FullName
+            $possibleCachePaths = @("cache", "cache2\entries", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite")
+            ForEach ($cachePath in $possibleCachePaths) {
+                Remove-Dir "$AppDataPath\$cachePath"
+            }
         }
     }
 }
-
 
 #------------------------------------------------------------------#
 #- Clear-ChromeCache                                               #
