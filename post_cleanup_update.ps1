@@ -206,6 +206,20 @@ Function Remove-Dir
 }
 
 #------------------------------------------------------------------#
+#- Remove-File                                               #
+#------------------------------------------------------------------#
+Function Remove-File
+{
+    param([Parameter(Mandatory = $true)][string]$path)
+
+    if ((Test-Path "$path"))
+    {
+        Remove-Item -Path "$path" -Force -ErrorAction SilentlyContinue
+		Write-Log "file removed $path"
+    }
+}
+
+#------------------------------------------------------------------#
 #- Clear-ChromeTemplate                                            #
 #------------------------------------------------------------------#
 Function Clear-ChromeTemplate
@@ -226,7 +240,7 @@ Function Clear-ChromeTemplate
         }
 		ForEach ($cacheFile in $possibleCacheFiles)
         {
-            Remove-Item -Path $path\$cacheFile -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-File "$path\$cacheFile"
         }
     }
 }
@@ -389,10 +403,7 @@ Clear-GlobalWindowsCache
 
 # Clear console history
 $ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
-if (Test-Path $ConsoleHistory) {
-    Remove-Item -Path $ConsoleHistory -Force
-    Write-Log "Clear console history"
-}
+Remove-File "$ConsoleHistory"
 
 function Remove-RegistryPathAndLog {
     param(
@@ -476,24 +487,19 @@ Write-Log "Clear Microsoft Edge cache"
 
 # Clear Downloads, Pictures, Music, Videos folders
 $DownloadsFolder = "$env:USERPROFILE\Downloads"
-Get-ChildItem -Path $DownloadsFolder | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Downloads"
+Remove-Dir "$DownloadsFolder"
 
 $PicturesFolder = "$env:USERPROFILE\Pictures"
-Get-ChildItem -Path $PicturesFolder | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Pictures"
+Remove-Dir "$PicturesFolder"
 
 $MusicFolder = "$env:USERPROFILE\Music"
-Get-ChildItem -Path $MusicFolder | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Music"
+Remove-Dir "$MusicFolder"
 
 $VideosFolder = "$env:USERPROFILE\Videos"
-Get-ChildItem -Path $VideosFolder -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Videos"
+Remove-Dir "$VideosFolder"
 
 $DocumentsFolder = "$env:USERPROFILE\Documents"
-Get-ChildItem -Path $DocumentsFolder -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Documents"
+Remove-Dir "$DocumentsFolder"
 
 # Set wallpaper based on manufacturer
 $Manufacturers = @(
