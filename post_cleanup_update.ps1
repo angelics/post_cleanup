@@ -12,6 +12,7 @@ function Write-Log {
         [string]$Message
     )
     Add-Content -Path $log -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
+	Write-Output "$Message"
 }
 
 # Check if the original log file exists
