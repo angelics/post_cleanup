@@ -32,34 +32,27 @@ Write-Log "Task killed: explorer.exe"
 # Check if the Win32 type already exists
 if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
     Add-Type @"
-	using System;
-	using System.Runtime.InteropServices;
+    using System;
+    using System.Runtime.InteropServices;
 
-public class Win32 {
-    [DllImport("user32.dll")]
-    public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-    [DllImport("user32.dll")]
-    public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-    [DllImport("user32.dll")]
-    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern IntPtr GetConsoleWindow();
+    public class Win32 {
+        [DllImport("user32.dll")]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
-    public const int GWL_STYLE = -16;
-    public const int WS_MINIMIZEBOX = 0x00020000;
-    public const int WS_MAXIMIZEBOX = 0x00010000;
-    public const int WS_SYSMENU = 0x00080000;
-    public const uint SWP_NOSIZE = 0x0001;
-    public const uint SWP_NOMOVE = 0x0002;
-    public const uint SWP_NOZORDER = 0x0004;
-    public const uint SWP_FRAMECHANGED = 0x0020;
-    public const int SW_HIDE = 0;
-    public const int SW_SHOW = 5;
-    public const int SW_MINIMIZE = 6;
-    public static readonly IntPtr HWND_TOP = IntPtr.Zero;
-}
+        public const int GWL_STYLE = -16;
+        public const int WS_MINIMIZEBOX = 0x00020000;
+        public const int WS_MAXIMIZEBOX = 0x00010000;
+        public const int WS_SYSMENU = 0x00080000;
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOZORDER = 0x0004;
+        public const uint SWP_FRAMECHANGED = 0x0020;
+        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
+    }
 "@
 }
 
@@ -75,10 +68,6 @@ $form.Add_Shown({
     $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU)
     [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
     [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
-
-    # Minimize PowerShell window
-    $consoleWindow = [Win32]::GetConsoleWindow()
-    [Win32]::ShowWindow($consoleWindow, [Win32]::SW_MINIMIZE)
 })
 
 # Prevent the form from being closed
@@ -98,7 +87,7 @@ $button1.Text = "Install Package"
 $button1.Location = New-Object System.Drawing.Point(50, 30)
 $button1.Size = New-Object System.Drawing.Size(190, 30)
 $button1.Add_Click({
-    install-package
+    Araid-install-packageinstall-package
 })
 
 # Create label for Upgrade
@@ -113,7 +102,7 @@ $button2.Text = "Upgrade Package"
 $button2.Location = New-Object System.Drawing.Point(50, 90)
 $button2.Size = New-Object System.Drawing.Size(190, 30)
 $button2.Add_Click({
-    upgrade-package
+    Araid-upgrade-packageupgrade-package
 })
 
 # Create label for Clean and Restart
@@ -128,7 +117,7 @@ $button3.Text = "Clean and Restart"
 $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
-    CleanAndRestart
+    Araid-CleanAndRestart
 })
 
 # Add buttons to the form
@@ -446,7 +435,7 @@ Function Clear-MicrosoftOfficeCacheFiles
     }
 }
 
-Function install-package {
+Function Araid-install-package {
 	$response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
 
 	$FilePath = "$env:systemroot\Logs\packages.json"
@@ -460,7 +449,7 @@ Function install-package {
 	Remove-Item -Path $FilePath
 }
 
-Function upgrade-package {
+Function Araid-upgrade-package {
 	winget pin add --id Discord.Discord --blocking
 	Write-Log "winget pin Discord.Discord"
 
@@ -515,7 +504,7 @@ function Remove-RegistryPropertyAndLog {
     }
 }
 
-Function CleanAndRestart {
+Function Araid-CleanAndRestart {
 	# Show Taskbar
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
 	$propertyName = 'Settings'
