@@ -331,30 +331,40 @@ Function Clear-MicrosoftOfficeCacheFiles
 }
 
 Function Araid-install-package {
-	$response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
+	# Download packages.json
+    try {
+        $response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
+        $FilePath = "$env:systemroot\Logs\packages.json"
+        $response.Content | Set-Content -Path $FilePath -Force 2>&1 | Write-Log
+        Write-Log "Downloaded and saved packages.json to $FilePath"
+    } catch {
+        Write-Log "Failed to download packages.json: $_"
+        return
+    }
 
-	$FilePath = "$env:systemroot\Logs\packages.json"
+	# Upgrade packages if needed
+    Write-Output "y" | winget upgrade 2>&1 | Write-Log
 
-	Set-Content -Path $FilePath -Value $response
+    # Import packages
+    winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade 2>&1 | Write-Log
+    Write-Log "Installed default packages without upgrade"
 
-	Write-Output "y" | winget upgrade
-	winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade
-	Write-Log "install default packages that should have without upgrade"
-	
-	Remove-Item -Path $FilePath
+    # Remove the temporary file
+    Remove-Item -Path $FilePath -Force 2>&1 | Write-Log
+    Write-Log "Removed $FilePath"
 }
 
 Function Araid-upgrade-package {
-	winget pin add --id Discord.Discord --blocking
+	winget pin add --id Discord.Discord --blocking 2>&1 | Write-Log
 	Write-Log "winget pin Discord.Discord"
 
-	winget pin add --id Microsoft.DevHome --blocking
+	winget pin add --id Microsoft.DevHome --blocking 2>&1 | Write-Log
 	Write-Log "winget pin Microsoft.DevHome"
 
-	winget pin add --id Cisco.Webex --blocking
+	winget pin add --id Cisco.Webex --blocking 2>&1 | Write-Log
 	Write-Log "winget pin Cisco.Webex"
 
-	winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+	winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity 2>&1 | Write-Log
 	Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
 }
 
@@ -624,9 +634,13 @@ $form.Add_Shown({
     [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
 })
 
+$allowClose = $false
+
 # Prevent the form from being closed
 $form.Add_FormClosing({
-    $_.Cancel = $true
+    if (-not $allowClose) {
+        $_.Cancel = $true
+    }
 })
 
 # Create label for install
@@ -641,10 +655,7 @@ $button1.Text = "1. Install Package"
 $button1.Location = New-Object System.Drawing.Point(50, 30)
 $button1.Size = New-Object System.Drawing.Size(190, 30)
 $button1.Add_Click({
-    # Execute Araid-upgrade-package and output to console
-    $command = "Araid-install-package"
-    $output = Invoke-Expression $command
-    Write-Output $output
+	Araid-install-package
 })
 
 # Create label for Upgrade
@@ -659,10 +670,7 @@ $button2.Text = "2. Upgrade Package"
 $button2.Location = New-Object System.Drawing.Point(50, 90)
 $button2.Size = New-Object System.Drawing.Size(190, 30)
 $button2.Add_Click({
-    # Execute Araid-upgrade-package and output to console
-    $command = "Araid-upgrade-package"
-    $output = Invoke-Expression $command
-    Write-Output $output
+    Araid-upgrade-package
 })
 
 # Create label for Clean and Restart
@@ -677,11 +685,9 @@ $button3.Text = "3. Clean and Restart"
 $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
+	$allowClose = $true
 	$form.Close()
-	# Execute Araid-upgrade-package and output to console
-    $command = "Araid-CleanAndRestart"
-    $output = Invoke-Expression $command
-    Write-Output $output
+    Araid-CleanAndRestart
 })
 
 # Add buttons to the form
