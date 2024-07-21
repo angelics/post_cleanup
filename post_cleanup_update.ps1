@@ -51,6 +51,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
         public const uint SWP_NOMOVE = 0x0002;
         public const uint SWP_NOZORDER = 0x0004;
         public const uint SWP_FRAMECHANGED = 0x0020;
+        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         public static readonly IntPtr HWND_TOP = IntPtr.Zero;
     }
 "@
@@ -60,6 +61,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
 $form.Size = New-Object System.Drawing.Size(480, 250)
+$form.TopMost = $true
 
 # Remove minimize, maximize, and close buttons
 $form.Add_Shown({
