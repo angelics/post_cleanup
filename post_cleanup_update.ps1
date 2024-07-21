@@ -1,3 +1,6 @@
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
 $log = "C:\Windows\Logs\araid\araid_post.log"
 
 # Get the directory of the original log file
@@ -18,10 +21,115 @@ if (Test-Path -Path $logDirectory) {
     Remove-Item -Path $log -Force
 	Write-Log "Deleted existing log file: $log"
 	}
+} else {
+	New-Item -ItemType Directory -Path $logDirectory
+	Write-Log "created $logDirectory"
 }
 
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
+
+# Check if the Win32 type already exists
+if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
+    Add-Type @"
+    using System;
+    using System.Runtime.InteropServices;
+
+    public class Win32 {
+        [DllImport("user32.dll")]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        public const int GWL_STYLE = -16;
+        public const int WS_MINIMIZEBOX = 0x00020000;
+        public const int WS_MAXIMIZEBOX = 0x00010000;
+        public const int WS_SYSMENU = 0x00080000;
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOZORDER = 0x0004;
+        public const uint SWP_FRAMECHANGED = 0x0020;
+        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
+    }
+"@
+}
+
+# Create the form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Araid Scripts"
+$form.Size = New-Object System.Drawing.Size(480, 250)
+
+# Remove minimize, maximize, and close buttons
+$form.Add_Shown({
+    $hWnd = $form.Handle
+    $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
+    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU)
+    [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
+    [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
+})
+
+# Prevent the form from being closed
+$form.Add_FormClosing({
+    $_.Cancel = $true
+})
+
+# Create label for install
+$label1 = New-Object System.Windows.Forms.Label
+$label1.Text = "Install default softwares"
+$label1.Location = New-Object System.Drawing.Point(270, 40)
+$label1.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for install
+$button1 = New-Object System.Windows.Forms.Button
+$button1.Text = "Install Package"
+$button1.Location = New-Object System.Drawing.Point(50, 30)
+$button1.Size = New-Object System.Drawing.Size(190, 30)
+$button1.Add_Click({
+    install-package
+})
+
+# Create label for Upgrade
+$label2 = New-Object System.Windows.Forms.Label
+$label2.Text = "Upgrade all installed softwares"
+$label2.Location = New-Object System.Drawing.Point(270, 100)
+$label2.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for Upgrade
+$button2 = New-Object System.Windows.Forms.Button
+$button2.Text = "Upgrade Package"
+$button2.Location = New-Object System.Drawing.Point(50, 90)
+$button2.Size = New-Object System.Drawing.Size(190, 30)
+$button2.Add_Click({
+    upgrade-package
+})
+
+# Create label for Clean and Restart
+$label3 = New-Object System.Windows.Forms.Label
+$label3.Text = "Clean whole OS and Restart"
+$label3.Location = New-Object System.Drawing.Point(270, 160)
+$label3.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for Clean and Restart
+$button3 = New-Object System.Windows.Forms.Button
+$button3.Text = "Clean and Restart"
+$button3.Location = New-Object System.Drawing.Point(50, 150)
+$button3.Size = New-Object System.Drawing.Size(190, 30)
+$button3.Add_Click({
+    CleanAndRestart
+})
+
+# Add buttons to the form
+$form.Controls.Add($label1)
+$form.Controls.Add($button1)
+$form.Controls.Add($label2)
+$form.Controls.Add($button2)
+$form.Controls.Add($label3)
+$form.Controls.Add($button3)
+
+# Show the form
+$form.ShowDialog()
 
 Function Set-RegistryProperty {
     param(
@@ -43,71 +151,6 @@ Function Set-RegistryProperty {
         Set-ItemProperty -Path $registryPath -Name $propertyName -Value $value -Force
     }
 }
-
-# Show Taskbar
-$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
-$propertyName = 'Settings'
-
-# Get the current settings
-$currentSettings = Get-ItemProperty -Path $RegistryPath
-
-# Update the settings value (index 8) to 2
-$currentSettings.Settings[8] = 2
-
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.Settings
-Write-Log "Show Taskbar"
-
-# Show Desktop Icons
-$registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop"
-$propertyName = 'FFlags'
-$value = 1075839524
-#1075839520 (Auto arrange icons = OFF and Align icons to grid = OFF) 
-#1075839521 (Auto arrange icons = ON and Align icons to grid = OFF) 
-#1075839524 (Auto arrange icons = OFF and Align icons to grid = ON) default
-#1075839525 (Auto arrange icons = ON and Align icons to grid = ON)
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-
-$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-$propertyName = 'HideIcons'
-$value = 0
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Show Desktop Icons"
-
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
-$propertyName = 'ShowRecent'
-$value = 0
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Remove Recent in File Explorer Home"
-
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
-$propertyName = 'ShowFrequent'
-$value = 0
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Remove Frequent Folders in Quick Access in File Explorer Home"
-
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
-$propertyName = 'ShowCloudFilesInQuickAccess'
-$value = 0
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Turn Off Show Files from Office.com in File Explorer Home for Current User"
-
-#$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-#$propertyName = 'DisableGraphRecentItems'
-#$value = 1
-#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-#Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
-
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-$propertyName = 'LaunchTo'
-$value = 1
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Open File Explorer to This PC"
-
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
-$propertyName = 'Hidden'
-$value = 1
-Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-Write-Log "Show hidden files, folders and drives"
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
@@ -392,37 +435,33 @@ Function Clear-MicrosoftOfficeCacheFiles
     }
 }
 
-$response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
+Function install-package {
+	$response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
 
-$FilePath = "$env:systemroot\Logs\packages.json"
+	$FilePath = "$env:systemroot\Logs\packages.json"
 
-Set-Content -Path $FilePath -Value $response
+	Set-Content -Path $FilePath -Value $response
 
-Write-Output "y" | winget upgrade
+	Write-Output "y" | winget upgrade
+	winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade
+	Write-Log "install default packages that should have without upgrade"
+	
+	Remove-Item -Path $FilePath
+}
 
-winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade
-Write-Log "install default packages that should have without upgrade"
+Function upgrade-package {
+	winget pin add --id Discord.Discord --blocking
+	Write-Log "winget pin Discord.Discord"
 
-Remove-Item -Path $FilePath
+	winget pin add --id Microsoft.DevHome --blocking
+	Write-Log "winget pin Microsoft.DevHome"
 
-winget pin add --id Discord.Discord --blocking
-Write-Log "winget pin Discord.Discord"
+	winget pin add --id Cisco.Webex --blocking
+	Write-Log "winget pin Cisco.Webex"
 
-winget pin add --id Microsoft.DevHome --blocking
-Write-Log "winget pin Microsoft.DevHome"
-
-winget pin add --id Cisco.Webex --blocking
-Write-Log "winget pin Cisco.Webex"
-
-winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
-Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
-
-Clear-UserCacheFiles
-Clear-GlobalWindowsCache
-
-# Clear console history
-$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
-Remove-File "$ConsoleHistory"
+	winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+	Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+}
 
 function Remove-RegistryPathAndLog {
     param(
@@ -439,14 +478,6 @@ function Remove-RegistryPathAndLog {
         Write-Log "Registry path $RegistryPath does not exist."
     }
 }
-
-# Clear typed history in File Explorer address bar
-$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths'
-Remove-RegistryPathAndLog -RegistryPath $registryPath
-
-# Clear typed history in Run dialog
-$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU'
-Remove-RegistryPathAndLog -RegistryPath $registryPath
 
 # Function to remove registry property and log command
 function Remove-RegistryPropertyAndLog {
@@ -473,99 +504,181 @@ function Remove-RegistryPropertyAndLog {
     }
 }
 
-# Clear ArcHistory from Compression settings
-$registryPath = 'HKCU:\Software\7-Zip\Compression'
-$propertyName = 'ArcHistory'
-Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+Function CleanAndRestart {
+	# Show Taskbar
+	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+	$propertyName = 'Settings'
 
-# Clear PathHistory from Extraction settings
-$registryPath = 'HKCU:\Software\7-Zip\Extraction'
-$propertyName = 'PathHistory'
-Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+	# Get the current settings
+	$currentSettings = Get-ItemProperty -Path $RegistryPath
 
-# Clear CopyHistory from FM settings
-$registryPath = 'HKCU:\Software\7-Zip\FM'
-$propertyName = 'CopyHistory'
-Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+	# Update the settings value (index 8) to 2
+	$currentSettings.Settings[8] = 2
 
-# Clear FolderHistory from FM settings
-$propertyName = 'FolderHistory'
-Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.Settings
+	Write-Log "Show Taskbar"
 
-# Clear PanelPath0 from FM settings
-$propertyName = 'PanelPath0'
-Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+	# Show Desktop Icons
+	$registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop"
+	$propertyName = 'FFlags'
+	$value = 1075839524
+	#1075839520 (Auto arrange icons = OFF and Align icons to grid = OFF) 
+	#1075839521 (Auto arrange icons = ON and Align icons to grid = OFF) 
+	#1075839524 (Auto arrange icons = OFF and Align icons to grid = ON) default
+	#1075839525 (Auto arrange icons = ON and Align icons to grid = ON)
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 
-# Clear Notepad history
-Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState\*" -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Notepad history"
+	$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+	$propertyName = 'HideIcons'
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Show Desktop Icons"
 
-# Clear Microsoft Edge cache
-Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\*" -Recurse -Force -ErrorAction SilentlyContinue
-Write-Log "Clear Microsoft Edge cache"
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
+	$propertyName = 'ShowRecent'
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Remove Recent in File Explorer Home"
 
-# Clear Downloads, Pictures, Music, Videos folders
-$DownloadsFolder = "$env:USERPROFILE\Downloads"
-Remove-Dir "$DownloadsFolder"
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
+	$propertyName = 'ShowFrequent'
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Remove Frequent Folders in Quick Access in File Explorer Home"
 
-$PicturesFolder = "$env:USERPROFILE\Pictures"
-Remove-Dir "$PicturesFolder"
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
+	$propertyName = 'ShowCloudFilesInQuickAccess'
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Turn Off Show Files from Office.com in File Explorer Home for Current User"
 
-$MusicFolder = "$env:USERPROFILE\Music"
-Remove-Dir "$MusicFolder"
+	#$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+	#$propertyName = 'DisableGraphRecentItems'
+	#$value = 1
+	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	#Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
 
-$VideosFolder = "$env:USERPROFILE\Videos"
-Remove-Dir "$VideosFolder"
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+	$propertyName = 'LaunchTo'
+	$value = 1
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Open File Explorer to This PC"
 
-$DocumentsFolder = "$env:USERPROFILE\Documents"
-Remove-Dir "$DocumentsFolder"
-
-# Set wallpaper based on manufacturer
-$Manufacturers = @(
-    "c:\Windows\Web\Wallpaper\backgroundDefault.jpg",
-    "c:\Windows\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
-    "c:\Windows\Web\Wallpaper\Dell\01.jpg",
-    "c:\Windows\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
-    "c:\Windows\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
-    "c:\Windows\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
-    "c:\Windows\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
-    "c:\Windows\Web\Wallpaper\dell\AFX_FHD.png",
-    "c:\Windows\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
-    "c:\Windows\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
-    "c:\Windows\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
-    "c:\Windows\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
-    "c:\Windows\Web\Wallpaper\Lenovo\Black Burst.jpg",
-    "c:\Windows\Web\Wallpaper\Lenovo\3.jpg",
-    "c:\Windows\ASUS\wallpapers\ASUS.jpg",
-    "c:\Windows\Web\Wallpaper\acer01.jpg",
-    "c:\Windows\Web\Wallpaper\WALLPAPER.jpg",
-    "c:\Windows\Web\Wallpaper\img0.jpg",
-    "c:\Windows\Web\Wallpaper\Surface\Surface.jpg",
-    "c:\Windows\Web\Wallpaper\Windows\img0.jpg"
-)
-
-foreach ($manufacturer in $Manufacturers) {
-    if (Test-Path $manufacturer) {
-        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $manufacturer -Force
-        RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
-		Write-Log "successfully changed wallpaper with $manufacturer"
-        break
-    }
-}
-
-#List all hidden devices
-$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'} 
-
-#loop through all hidden devices to remove them using pnputil
-ForEach($dev in $unknown_devs){
-	# Construct the command arguments
-    $arguments = "/remove-device $($dev.InstanceId)"
-    
-    # Start the process with hidden window style
-    Start-Process -WindowStyle Hidden -FilePath "pnputil.exe" -ArgumentList $arguments -Wait
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+	$propertyName = 'Hidden'
+	$value = 1
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Show hidden files, folders and drives"
 	
-	Write-Log "$($dev.InstanceId) has been removed"
-}
+	Clear-UserCacheFiles
+	Clear-GlobalWindowsCache
 
-# Wait for user confirmation
-Read-Host -Prompt "Press Enter to restart the computer..."
+	# Clear console history
+	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
+	Remove-File "$ConsoleHistory"
+	
+	# Clear typed history in File Explorer address bar
+	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths'
+	Remove-RegistryPathAndLog -RegistryPath $registryPath
+
+	# Clear typed history in Run dialog
+	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU'
+	Remove-RegistryPathAndLog -RegistryPath $registryPath
+	
+	# Clear ArcHistory from Compression settings
+	$registryPath = 'HKCU:\Software\7-Zip\Compression'
+	$propertyName = 'ArcHistory'
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+
+	# Clear PathHistory from Extraction settings
+	$registryPath = 'HKCU:\Software\7-Zip\Extraction'
+	$propertyName = 'PathHistory'
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+
+	# Clear CopyHistory from FM settings
+	$registryPath = 'HKCU:\Software\7-Zip\FM'
+	$propertyName = 'CopyHistory'
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+
+	# Clear FolderHistory from FM settings
+	$propertyName = 'FolderHistory'
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+
+	# Clear PanelPath0 from FM settings
+	$propertyName = 'PanelPath0'
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+
+	# Clear Notepad history
+	Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState\*" -Recurse -Force -ErrorAction SilentlyContinue
+	Write-Log "Clear Notepad history"
+
+	# Clear Microsoft Edge cache
+	Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\*" -Recurse -Force -ErrorAction SilentlyContinue
+	Write-Log "Clear Microsoft Edge cache"
+
+	# Clear Downloads, Pictures, Music, Videos folders
+	$DownloadsFolder = "$env:USERPROFILE\Downloads"
+	Remove-Dir "$DownloadsFolder"
+
+	$PicturesFolder = "$env:USERPROFILE\Pictures"
+	Remove-Dir "$PicturesFolder"
+
+	$MusicFolder = "$env:USERPROFILE\Music"
+	Remove-Dir "$MusicFolder"
+
+	$VideosFolder = "$env:USERPROFILE\Videos"
+	Remove-Dir "$VideosFolder"
+
+	$DocumentsFolder = "$env:USERPROFILE\Documents"
+	Remove-Dir "$DocumentsFolder"
+
+	# Set wallpaper based on manufacturer
+	$Manufacturers = @(
+		"c:\Windows\Web\Wallpaper\backgroundDefault.jpg",
+		"c:\Windows\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
+		"c:\Windows\Web\Wallpaper\Dell\01.jpg",
+		"c:\Windows\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
+		"c:\Windows\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
+		"c:\Windows\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
+		"c:\Windows\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
+		"c:\Windows\Web\Wallpaper\dell\AFX_FHD.png",
+		"c:\Windows\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
+		"c:\Windows\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
+		"c:\Windows\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
+		"c:\Windows\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
+		"c:\Windows\Web\Wallpaper\Lenovo\Black Burst.jpg",
+		"c:\Windows\Web\Wallpaper\Lenovo\3.jpg",
+		"c:\Windows\ASUS\wallpapers\ASUS.jpg",
+		"c:\Windows\Web\Wallpaper\acer01.jpg",
+		"c:\Windows\Web\Wallpaper\WALLPAPER.jpg",
+		"c:\Windows\Web\Wallpaper\img0.jpg",
+		"c:\Windows\Web\Wallpaper\Surface\Surface.jpg",
+		"c:\Windows\Web\Wallpaper\Windows\img0.jpg"
+	)
+
+	foreach ($manufacturer in $Manufacturers) {
+		if (Test-Path $manufacturer) {
+			Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $manufacturer -Force
+			RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
+			Write-Log "successfully changed wallpaper with $manufacturer"
+			break
+		}
+	}
+
+	#List all hidden devices
+	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'} 
+
+	#loop through all hidden devices to remove them using pnputil
+	ForEach($dev in $unknown_devs){
+		# Construct the command arguments
+		$arguments = "/remove-device $($dev.InstanceId)"
+		
+		# Start the process with hidden window style
+		Start-Process -WindowStyle Hidden -FilePath "pnputil.exe" -ArgumentList $arguments -Wait
+		
+		Write-Log "$($dev.InstanceId) has been removed"
+	}
+
+	# Wait for user confirmation
+	Read-Host -Prompt "Press Enter to restart the computer..."
+}
