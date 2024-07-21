@@ -678,7 +678,10 @@ $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
 	$form.Close()
-    Araid-CleanAndRestart
+	# Execute Araid-upgrade-package and output to console
+    $command = "Araid-CleanAndRestart"
+    $output = Invoke-Expression $command
+    Write-Output $output
 })
 
 # Add buttons to the form
