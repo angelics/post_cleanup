@@ -641,7 +641,10 @@ $button1.Text = "1. Install Package"
 $button1.Location = New-Object System.Drawing.Point(50, 30)
 $button1.Size = New-Object System.Drawing.Size(190, 30)
 $button1.Add_Click({
-    Araid-install-package
+    # Execute Araid-upgrade-package and output to console
+    $command = "Araid-install-package"
+    $output = Invoke-Expression $command
+    Write-Output $output
 })
 
 # Create label for Upgrade
@@ -656,7 +659,10 @@ $button2.Text = "2. Upgrade Package"
 $button2.Location = New-Object System.Drawing.Point(50, 90)
 $button2.Size = New-Object System.Drawing.Size(190, 30)
 $button2.Add_Click({
-    Araid-upgrade-package
+    # Execute Araid-upgrade-package and output to console
+    $command = "Araid-upgrade-package"
+    $output = Invoke-Expression $command
+    Write-Output $output
 })
 
 # Create label for Clean and Restart
@@ -671,6 +677,7 @@ $button3.Text = "3. Clean and Restart"
 $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
+	$form.Close()
     Araid-CleanAndRestart
 })
 
