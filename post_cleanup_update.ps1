@@ -26,113 +26,6 @@ if (Test-Path -Path $logDirectory) {
 	Write-Log "created $logDirectory"
 }
 
-taskkill /f /im explorer.exe
-Write-Log "Task killed: explorer.exe"
-
-# Check if the Win32 type already exists
-if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
-    Add-Type @"
-    using System;
-    using System.Runtime.InteropServices;
-
-    public class Win32 {
-        [DllImport("user32.dll")]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-        [DllImport("user32.dll")]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-        [DllImport("user32.dll")]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        public const int GWL_STYLE = -16;
-        public const int WS_MINIMIZEBOX = 0x00020000;
-        public const int WS_MAXIMIZEBOX = 0x00010000;
-        public const int WS_SYSMENU = 0x00080000;
-        public const uint SWP_NOSIZE = 0x0001;
-        public const uint SWP_NOMOVE = 0x0002;
-        public const uint SWP_NOZORDER = 0x0004;
-        public const uint SWP_FRAMECHANGED = 0x0020;
-        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
-    }
-"@
-}
-
-# Create the form
-$form = New-Object System.Windows.Forms.Form
-$form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 250)
-$form.TopMost = $true
-
-# Remove minimize, maximize, and close buttons
-$form.Add_Shown({
-    $hWnd = $form.Handle
-    $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
-    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU)
-    [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
-    [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
-})
-
-# Prevent the form from being closed
-$form.Add_FormClosing({
-    $_.Cancel = $true
-})
-
-# Create label for install
-$label1 = New-Object System.Windows.Forms.Label
-$label1.Text = "Install default softwares"
-$label1.Location = New-Object System.Drawing.Point(270, 40)
-$label1.Size = New-Object System.Drawing.Size(190, 20)
-
-# Create button for install
-$button1 = New-Object System.Windows.Forms.Button
-$button1.Text = "1. Install Package"
-$button1.Location = New-Object System.Drawing.Point(50, 30)
-$button1.Size = New-Object System.Drawing.Size(190, 30)
-$button1.Add_Click({
-    Araid-install-package
-})
-
-# Create label for Upgrade
-$label2 = New-Object System.Windows.Forms.Label
-$label2.Text = "2. Upgrade all installed softwares"
-$label2.Location = New-Object System.Drawing.Point(270, 100)
-$label2.Size = New-Object System.Drawing.Size(190, 20)
-
-# Create button for Upgrade
-$button2 = New-Object System.Windows.Forms.Button
-$button2.Text = "Upgrade Package"
-$button2.Location = New-Object System.Drawing.Point(50, 90)
-$button2.Size = New-Object System.Drawing.Size(190, 30)
-$button2.Add_Click({
-    Araid-upgrade-package
-})
-
-# Create label for Clean and Restart
-$label3 = New-Object System.Windows.Forms.Label
-$label3.Text = "3. Clean OS and Restart"
-$label3.Location = New-Object System.Drawing.Point(270, 160)
-$label3.Size = New-Object System.Drawing.Size(190, 20)
-
-# Create button for Clean and Restart
-$button3 = New-Object System.Windows.Forms.Button
-$button3.Text = "Clean and Restart"
-$button3.Location = New-Object System.Drawing.Point(50, 150)
-$button3.Size = New-Object System.Drawing.Size(190, 30)
-$button3.Add_Click({
-    Araid-CleanAndRestart
-})
-
-# Add buttons to the form
-$form.Controls.Add($label1)
-$form.Controls.Add($button1)
-$form.Controls.Add($label2)
-$form.Controls.Add($button2)
-$form.Controls.Add($label3)
-$form.Controls.Add($button3)
-
-# Show the form
-$form.ShowDialog()
-
 Function Set-RegistryProperty {
     param(
         [Parameter(Mandatory = $true)][string]$registryPath,
@@ -684,3 +577,110 @@ Function Araid-CleanAndRestart {
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
 }
+
+taskkill /f /im explorer.exe
+Write-Log "Task killed: explorer.exe"
+
+# Check if the Win32 type already exists
+if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
+    Add-Type @"
+    using System;
+    using System.Runtime.InteropServices;
+
+    public class Win32 {
+        [DllImport("user32.dll")]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        public const int GWL_STYLE = -16;
+        public const int WS_MINIMIZEBOX = 0x00020000;
+        public const int WS_MAXIMIZEBOX = 0x00010000;
+        public const int WS_SYSMENU = 0x00080000;
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOZORDER = 0x0004;
+        public const uint SWP_FRAMECHANGED = 0x0020;
+        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
+    }
+"@
+}
+
+# Create the form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Araid Scripts"
+$form.Size = New-Object System.Drawing.Size(480, 250)
+$form.TopMost = $true
+
+# Remove minimize, maximize, and close buttons
+$form.Add_Shown({
+    $hWnd = $form.Handle
+    $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
+    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU)
+    [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
+    [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
+})
+
+# Prevent the form from being closed
+$form.Add_FormClosing({
+    $_.Cancel = $true
+})
+
+# Create label for install
+$label1 = New-Object System.Windows.Forms.Label
+$label1.Text = "Install default softwares"
+$label1.Location = New-Object System.Drawing.Point(270, 40)
+$label1.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for install
+$button1 = New-Object System.Windows.Forms.Button
+$button1.Text = "1. Install Package"
+$button1.Location = New-Object System.Drawing.Point(50, 30)
+$button1.Size = New-Object System.Drawing.Size(190, 30)
+$button1.Add_Click({
+    Araid-install-package
+})
+
+# Create label for Upgrade
+$label2 = New-Object System.Windows.Forms.Label
+$label2.Text = "Upgrade all installed softwares"
+$label2.Location = New-Object System.Drawing.Point(270, 100)
+$label2.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for Upgrade
+$button2 = New-Object System.Windows.Forms.Button
+$button2.Text = "2. Upgrade Package"
+$button2.Location = New-Object System.Drawing.Point(50, 90)
+$button2.Size = New-Object System.Drawing.Size(190, 30)
+$button2.Add_Click({
+    Araid-upgrade-package
+})
+
+# Create label for Clean and Restart
+$label3 = New-Object System.Windows.Forms.Label
+$label3.Text = "Full OS drive clean and reboot"
+$label3.Location = New-Object System.Drawing.Point(270, 160)
+$label3.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for Clean and Restart
+$button3 = New-Object System.Windows.Forms.Button
+$button3.Text = "3. Clean and Restart"
+$button3.Location = New-Object System.Drawing.Point(50, 150)
+$button3.Size = New-Object System.Drawing.Size(190, 30)
+$button3.Add_Click({
+    Araid-CleanAndRestart
+})
+
+# Add buttons to the form
+$form.Controls.Add($label1)
+$form.Controls.Add($button1)
+$form.Controls.Add($label2)
+$form.Controls.Add($button2)
+$form.Controls.Add($label3)
+$form.Controls.Add($button3)
+
+# Show the form
+$form.ShowDialog()
