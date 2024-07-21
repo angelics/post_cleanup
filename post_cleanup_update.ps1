@@ -246,7 +246,7 @@ Function Clear-ChromeTemplate
     if ((Test-Path $path))
     {
         Write-Output "Clear cache $name"
-        $possibleCachePaths = @("Cache", "Cache2\entries\", "ChromeDWriteFontCache", "Code Cache", "GPUCache", "JumpListIcons", "JumpListIconsOld", "Media Cache", "Service Worker", "Top Sites", "VisitedLinks", "Web Data", "Preferences", "Local Storage", "Session Storage", "Cookies", "Network", "Sessions")
+        $possibleCachePaths = @("Cache", "Cache2\entries\", "ChromeDWriteFontCache", "Code Cache", "GPUCache", "JumpListIcons", "JumpListIconsOld", "Media Cache", "Service Worker", "Top Sites", "VisitedLinks", "Web Data", "Preferences", "Local Storage", "Session Storage", "Cookies", "Network", "Sessions" , "IndexedDB")
         ForEach ($cachePath in $possibleCachePaths)
         {
             Remove-Dir "$path\$cachePath"
@@ -302,6 +302,7 @@ Function Clear-EdgeCacheFiles
 {
     param([string]$user = $env:USERNAME)
     Clear-ChromeTemplate "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default" "Browser Microsoft Edge"
+    Remove-Dir "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\*.TMP"
     Remove-Dir "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\CacheStorage"
 }
 
