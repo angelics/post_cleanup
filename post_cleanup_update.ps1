@@ -83,16 +83,16 @@ $label1.Size = New-Object System.Drawing.Size(190, 20)
 
 # Create button for install
 $button1 = New-Object System.Windows.Forms.Button
-$button1.Text = "Install Package"
+$button1.Text = "1. Install Package"
 $button1.Location = New-Object System.Drawing.Point(50, 30)
 $button1.Size = New-Object System.Drawing.Size(190, 30)
 $button1.Add_Click({
-    Araid-install-packageinstall-package
+    Araid-install-package
 })
 
 # Create label for Upgrade
 $label2 = New-Object System.Windows.Forms.Label
-$label2.Text = "Upgrade all installed softwares"
+$label2.Text = "2. Upgrade all installed softwares"
 $label2.Location = New-Object System.Drawing.Point(270, 100)
 $label2.Size = New-Object System.Drawing.Size(190, 20)
 
@@ -102,12 +102,12 @@ $button2.Text = "Upgrade Package"
 $button2.Location = New-Object System.Drawing.Point(50, 90)
 $button2.Size = New-Object System.Drawing.Size(190, 30)
 $button2.Add_Click({
-    Araid-upgrade-packageupgrade-package
+    Araid-upgrade-package
 })
 
 # Create label for Clean and Restart
 $label3 = New-Object System.Windows.Forms.Label
-$label3.Text = "Clean whole OS and Restart"
+$label3.Text = "3. Clean OS and Restart"
 $label3.Location = New-Object System.Drawing.Point(270, 160)
 $label3.Size = New-Object System.Drawing.Size(190, 20)
 
