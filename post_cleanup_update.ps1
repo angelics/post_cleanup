@@ -590,6 +590,11 @@ Function Araid-CleanAndRestart {
 
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
+# Check if winget is installed
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    # Install winget
+    Add-AppxPackage -Path "https://aka.ms/getwinget"
+}
 Write-Output "y" | winget upgrade
 
 # Check if the Win32 type already exists
