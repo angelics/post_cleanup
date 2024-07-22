@@ -12,7 +12,6 @@ function Write-Log {
         [string]$Message
     )
     Add-Content -Path $log -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
-	Write-Output "$Message"
 }
 
 # Check if the original log file exists
@@ -332,41 +331,41 @@ Function Clear-MicrosoftOfficeCacheFiles
 }
 
 Function Araid-install-package {
-	# Download packages.json
+
     try {
         $response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
         $FilePath = "$env:systemroot\Logs\packages.json"
-        $response.Content | Set-Content -Path $FilePath -Force 2>&1 | Write-Log
+        $response.Content | Set-Content -Path $FilePath -Force
         Write-Log "Downloaded and saved packages.json to $FilePath"
     } catch {
         Write-Log "Failed to download packages.json: $_"
         return
     }
 
-	# Upgrade packages if needed
-    Write-Output "y" | winget upgrade 2>&1 | Write-Log
-
-    # Import packages
-    winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade 2>&1 | Write-Log
-    Write-Log "Installed default packages without upgrade"
-
-    # Remove the temporary file
-    Remove-Item -Path $FilePath -Force 2>&1 | Write-Log
-    Write-Log "Removed $FilePath"
+	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade"
+	
+	Write-Log "Started winget install, with default softwares using: $FilePath "
+	
+    Remove-Item -Path $FilePath -Force
 }
 
-Function Araid-upgrade-package {
-	winget pin add --id Discord.Discord --blocking 2>&1 | Write-Log
-	Write-Log "winget pin Discord.Discord"
-
-	winget pin add --id Microsoft.DevHome --blocking 2>&1 | Write-Log
-	Write-Log "winget pin Microsoft.DevHome"
-
-	winget pin add --id Cisco.Webex --blocking 2>&1 | Write-Log
-	Write-Log "winget pin Cisco.Webex"
-
-	winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity 2>&1 | Write-Log
-	Write-Log "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+function Araid-upgrade-package {
+    $commands = @(
+        "winget pin add --id Discord.Discord --blocking",
+        "winget pin add --id Microsoft.DevHome --blocking",
+        "winget pin add --id Cisco.Webex --blocking",
+		"winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+        
+    )
+    
+    $commandString = $commands -join " && "
+    
+    Start-Process cmd.exe -ArgumentList "/c $commandString"
+	
+	Write-Log "Blocking upgrade for Discord.Discord"
+	Write-Log "Blocking upgrade for Microsoft.DevHome"
+	Write-Log "Blocking upgrade for Cisco.Webex"
+	Write-Log "Started winget upgrade softwares."
 }
 
 function Remove-RegistryPathAndLog {
@@ -591,6 +590,7 @@ Function Araid-CleanAndRestart {
 
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
+Write-Output "y" | winget upgrade
 
 # Check if the Win32 type already exists
 if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
