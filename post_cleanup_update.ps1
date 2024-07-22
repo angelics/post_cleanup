@@ -99,6 +99,7 @@ Function Clear-UserCacheFiles
         Clear-SteamCacheFiles $localUser
         Clear-TeamsCacheFiles $localUser
         Clear-WindowsUserCacheFiles $localUser
+        Clear-NotepadPP $localUser
     }
 }
 
@@ -327,6 +328,22 @@ Function Clear-MicrosoftOfficeCacheFiles
                 remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
         Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Word\*" -Recurse -Force -ErrorAction SilentlyContinue |
                 remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
+    }
+}
+
+Function Clear-NotepadPP
+{
+    param([string]$user = $env:USERNAME)
+    if ((Test-Path "C:\users\$user\AppData\Roaming\Notepad++"))
+    {
+		$possibleCachePaths = @("backup")
+		ForEach ($cachePath in $possibleCachePaths) {
+			Remove-Dir "$path\$cachePath"
+		}
+		$possibleCacheFiles = @("config.xml", "session.xml")
+		ForEach ($cacheFile in $possibleCacheFiles) {
+			Remove-File "$path\$cacheFile"
+		}
     }
 }
 
