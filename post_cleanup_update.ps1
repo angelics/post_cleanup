@@ -330,7 +330,25 @@ Function Clear-MicrosoftOfficeCacheFiles
     }
 }
 
+function Check-winget {
+	
+	# Check if winget is installed, win10 not installed by default
+	# https://github.com/microsoft/winget-cli/issues/1861
+	if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+		# Install winget
+		IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile ".\Windows10_PreinstallKit.zip"; Expand-Archive -Path ".\Windows10_PreinstallKit.zip" -DestinationPath ".\Windows10_PreinstallKit" -Force; Move-Item -Path ".\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination .; Remove-Item -Path ".\Windows10_PreinstallKit.zip" -Force; Remove-Item -Path ".\Windows10_PreinstallKit" -Recurse -Force
+		Add-AppxPackage -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
+		Remove-File ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
+		Add-AppxPackage -Path https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx
+		Add-AppxPackage -Path "https://aka.ms/getwinget"
+	}
+	
+	Write-Output "y" | winget upgrade
+}
+
 Function Araid-install-package {
+	
+	Check-winget
 
     try {
         $response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
@@ -349,6 +367,9 @@ Function Araid-install-package {
 }
 
 function Araid-upgrade-package {
+	
+	Check-winget
+	
     $commands = @(
         "winget pin add --id Discord.Discord --blocking",
         "winget pin add --id Microsoft.DevHome --blocking",
@@ -588,17 +609,6 @@ Function Araid-CleanAndRestart {
 
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
-# Check if winget is installed, win10 not installed by default
-# https://github.com/microsoft/winget-cli/issues/1861
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    # Install winget
-	IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile ".\Windows10_PreinstallKit.zip"; Expand-Archive -Path ".\Windows10_PreinstallKit.zip" -DestinationPath ".\Windows10_PreinstallKit" -Force; Move-Item -Path ".\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination .; Remove-Item -Path ".\Windows10_PreinstallKit.zip" -Force; Remove-Item -Path ".\Windows10_PreinstallKit" -Recurse -Force
-	Add-AppxPackage -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
-	Remove-File ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
-	Add-AppxPackage -Path https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx
-    Add-AppxPackage -Path "https://aka.ms/getwinget"
-}
-Write-Output "y" | winget upgrade
 
 # Check if the Win32 type already exists
 if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
