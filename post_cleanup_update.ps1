@@ -597,8 +597,7 @@ Function Araid-CleanAndRestart {
 		# Construct the command arguments
 		$arguments = "/remove-device $($dev.InstanceId)"
 		
-		# Start the process with hidden window style
-		Start-Process -WindowStyle Hidden -FilePath "pnputil.exe" -ArgumentList $arguments -Wait
+		Start-Process -FilePath "pnputil.exe" -ArgumentList $arguments -Wait
 		
 		Write-Log "$($dev.InstanceId) has been removed"
 	}
