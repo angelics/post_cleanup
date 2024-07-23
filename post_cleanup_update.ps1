@@ -562,6 +562,12 @@ Function Araid-CleanAndRestart {
 	Write-Log "Clear 7zip PanelPath0 from FM settings"
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
+	# Disable Startup for skype
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
+	$propertyName = 'Skype for Desktop'
+	Write-Log "Disable Startup for skype"
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+
 	# Clear Notepad history
 	Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState\*" -Recurse -Force -ErrorAction SilentlyContinue
 	Write-Log "Clear Notepad history"
