@@ -638,6 +638,10 @@ Function Araid-CleanAndRestart {
 
 taskkill /f /im explorer.exe
 Write-Log "Task killed: explorer.exe"
+taskkill /f /im skype.exe
+Write-Log "Task killed: skype.exe"
+taskkill /f /im discord.exe
+Write-Log "Task killed: discord.exe"
 
 # Check if the Win32 type already exists
 if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
