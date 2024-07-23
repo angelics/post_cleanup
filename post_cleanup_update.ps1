@@ -437,10 +437,10 @@ function Remove-RegistryPropertyAndLog {
         $propertyExists = Get-ItemProperty -Path $RegistryPath -Name $PropertyName -ErrorAction SilentlyContinue
         if ($propertyExists -ne $null) {
             Remove-ItemProperty -Path $RegistryPath -Name $PropertyName -Force
-            Write-Log ("Removed property $PropertyName from registry path $RegistryPath.")
+            Write-Log ("Removed property $PropertyName from registry path $RegistryPath")
         } else {
-            Write-Host "Property $PropertyName does not exist at path $RegistryPath."
-            Write-Log "Property $PropertyName does not exist at path $RegistryPath."
+            Write-Host "Property $PropertyName does not exist at path $RegistryPath"
+            Write-Log "Property $PropertyName does not exist at path $RegistryPath"
         }
     }
     else {
@@ -570,6 +570,14 @@ Function Araid-CleanAndRestart {
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
 	$propertyName = 'Skype for Desktop'
 	Write-Log "Disable Startup for skype"
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+	
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+	$propertyName = 'Skype for Desktop'
+	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
+	
+	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunNotification'
+	$propertyName = 'StartupTNotiSkype for Desktop'
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 	# Clear Notepad history
