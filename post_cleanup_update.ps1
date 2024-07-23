@@ -381,6 +381,8 @@ Function Araid-install-package {
 	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -Wait
 	
     Remove-Item -Path $FilePath -Force
+
+	Write-Host "install done."
 }
 
 function Araid-upgrade-package {
@@ -402,6 +404,8 @@ function Araid-upgrade-package {
 	Write-Log "Blocking upgrade for Cisco.Webex"
 	Write-Log "Start winget upgrade softwares."
     Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait
+	
+	Write-Host "upgrade done."
 }
 
 function Remove-RegistryPathAndLog {
@@ -625,17 +629,30 @@ Function Araid-CleanAndRestart {
 		}
 	}
 
-	#List all hidden devices
-	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'} 
+	# List all hidden devices
+	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
 
-	#loop through all hidden devices to remove them using pnputil
+	# Initialize an array to hold the command arguments
+	$commands = @()
+
+	# Loop through all hidden devices to create the arguments
 	ForEach($dev in $unknown_devs){
-		# Construct the command arguments
 		$arguments = "/remove-device $($dev.InstanceId)"
-		
-		Start-Process -FilePath "pnputil.exe" -ArgumentList $arguments -Wait
-		
-		Write-Log "$($dev.InstanceId) has been removed"
+		$commands += $arguments
+	}
+
+	# Combine all commands into a single string
+	$combinedCommands = $commands -join " & pnputil.exe "
+
+	# Construct the full command
+	$fullCommand = "pnputil.exe $combinedCommands"
+
+	# Start a single process to run the combined command
+	Start-Process -FilePath "powershell.exe" -ArgumentList "-Command $fullCommand" -Wait
+
+	# Log the action
+	$unknown_devs | ForEach-Object {
+		Write-Log "$($_.InstanceId) has been removed"
 	}
 
 	# Wait for user confirmation
