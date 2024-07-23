@@ -516,37 +516,50 @@ Function Araid-CleanAndRestart {
 
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
+	Write-Log "Clear console history"
 	Remove-File "$ConsoleHistory"
 	
 	# Clear typed history in File Explorer address bar
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths'
+	Write-Log "Clear typed history in File Explorer address bar"
 	Remove-RegistryPathAndLog -RegistryPath $registryPath
 
 	# Clear typed history in Run dialog
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU'
+	Write-Log "Clear typed history in Run dialog"
+	Remove-RegistryPathAndLog -RegistryPath $registryPath
+	
+	# Clear Media Player Classic
+	$registryPath = 'HKCU:\SOFTWARE\MPC-HC\MPC-HC\MediaHistory'
+	Write-Log "Clear Media Player Classic"
 	Remove-RegistryPathAndLog -RegistryPath $registryPath
 	
 	# Clear ArcHistory from Compression settings
 	$registryPath = 'HKCU:\Software\7-Zip\Compression'
 	$propertyName = 'ArcHistory'
+	Write-Log "Clear 7zip ArcHistory from Compression settings"
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 	# Clear PathHistory from Extraction settings
 	$registryPath = 'HKCU:\Software\7-Zip\Extraction'
 	$propertyName = 'PathHistory'
+	Write-Log "Clear 7zip PathHistory from Extraction settings"
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 	# Clear CopyHistory from FM settings
 	$registryPath = 'HKCU:\Software\7-Zip\FM'
 	$propertyName = 'CopyHistory'
+	Write-Log "Clear 7zip CopyHistory from FM settings"
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 	# Clear FolderHistory from FM settings
 	$propertyName = 'FolderHistory'
+	Write-Log "Clear 7zip FolderHistory from FM settings"
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 	# Clear PanelPath0 from FM settings
 	$propertyName = 'PanelPath0'
+	Write-Log "Clear 7zip PanelPath0 from FM settings"
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
 	# Clear Notepad history
