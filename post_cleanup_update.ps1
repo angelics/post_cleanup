@@ -2,59 +2,6 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $global:wingetChecked = $false
 
-# Check if the Win32 type already exists
-if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
-    Add-Type @"
-    using System;
-    using System.Runtime.InteropServices;
-
-    public class Win32 {
-        [DllImport("user32.dll")]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-        [DllImport("user32.dll")]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-        [DllImport("user32.dll")]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        public const int GWL_STYLE = -16;
-        public const int WS_MINIMIZEBOX = 0x00020000;
-        public const int WS_MAXIMIZEBOX = 0x00010000;
-        public const int WS_SYSMENU = 0x00080000;
-        public const int WS_THICKFRAME = 0x00040000; // disable resize
-        public const uint SWP_NOSIZE = 0x0001;
-        public const uint SWP_NOMOVE = 0x0002;
-        public const uint SWP_NOZORDER = 0x0004;
-        public const uint SWP_FRAMECHANGED = 0x0020;
-        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
-    }
-"@
-}
-
-# Create the form
-$form = New-Object System.Windows.Forms.Form
-$form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 250)
-$form.TopMost = $true
-
-# Remove minimize, maximize, close buttons and disable form resize
-$form.Add_Shown({
-    $hWnd = $form.Handle
-    $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
-    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU) -band -bnot ([Win32]::WS_THICKFRAME)
-    [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
-    [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
-})
-
-$allowClose = $false
-
-# Prevent the form from being closed
-$form.Add_FormClosing({
-    if (-not $allowClose) {
-        $_.Cancel = $true
-    }
-})
-
 $log = "$env:systemroot\Logs\araid\araid_post.log"
 
 # Get the directory of the original log file
@@ -492,13 +439,13 @@ function Remove-RegistryPropertyAndLog {
 
 
 Function Araid-CleanAndRestart {
-	
-	Write-Host "Cleaning started."
-	Write-Host "Please wait..."
-	
+		
 	param (
         [System.Windows.Forms.Form]$Form
     )
+	
+	Write-Host "Cleaning started."
+	Write-Host "Please wait..."
 	
     if ($Form) {
         $Form.Close()
@@ -775,6 +722,59 @@ function kill-necessary {
 
 Clear-Host
 kill-necessary
+
+# Check if the Win32 type already exists
+if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
+    Add-Type @"
+    using System;
+    using System.Runtime.InteropServices;
+
+    public class Win32 {
+        [DllImport("user32.dll")]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        public const int GWL_STYLE = -16;
+        public const int WS_MINIMIZEBOX = 0x00020000;
+        public const int WS_MAXIMIZEBOX = 0x00010000;
+        public const int WS_SYSMENU = 0x00080000;
+        public const int WS_THICKFRAME = 0x00040000; // disable resize
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOZORDER = 0x0004;
+        public const uint SWP_FRAMECHANGED = 0x0020;
+        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
+    }
+"@
+}
+
+# Create the form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Araid Scripts"
+$form.Size = New-Object System.Drawing.Size(480, 250)
+$form.TopMost = $true
+
+# Remove minimize, maximize, close buttons and disable form resize
+$form.Add_Shown({
+    $hWnd = $form.Handle
+    $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
+    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU) -band -bnot ([Win32]::WS_THICKFRAME)
+    [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
+    [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
+})
+
+$allowClose = $false
+
+# Prevent the form from being closed
+$form.Add_FormClosing({
+    if (-not $allowClose) {
+        $_.Cancel = $true
+    }
+})
 
 # Create label for install
 $label1 = New-Object System.Windows.Forms.Label
