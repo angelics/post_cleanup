@@ -1,5 +1,6 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+$global:wingetChecked = $false
 
 $log = "C:\Windows\Logs\araid\araid_post.log"
 
@@ -87,7 +88,6 @@ Function Clear-GlobalWindowsCache
 #------------------------------------------------------------------#
 Function Clear-UserCacheFiles
 {
-    Stop-BrowserSessions
     ForEach ($localUser in (Get-ChildItem "C:\users").Name)
     {
 		Clear-AcrobatCacheFiles $localUser
@@ -330,6 +330,10 @@ Function Clear-NotepadPP
 
 function Check-winget {
 	
+	if ($global:wingetChecked) {
+        return
+    }
+	
 	# Check if winget is installed, win10 not installed by default
 	# https://github.com/microsoft/winget-cli/issues/1861
 	if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
@@ -342,6 +346,8 @@ function Check-winget {
 	}
 	
 	Write-Output "y" | winget upgrade
+	
+	$global:wingetChecked = $true
 }
 
 Function Araid-install-package {
