@@ -796,9 +796,12 @@ $button3.Text = "3. Clean and Restart"
 $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
-	$allowClose = $true
-	$form.Close()
-    Araid-CleanAndRestart
+    $result = [System.Windows.Forms.MessageBox]::Show("Are you sure you want to clean and restart?", "Confirmation", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
+    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+        $allowClose = $true
+        $form.Close()
+        Araid-CleanAndRestart
+    }
 })
 
 # Add buttons to the form
