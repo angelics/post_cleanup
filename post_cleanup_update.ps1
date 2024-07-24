@@ -500,7 +500,9 @@ Function Araid-CleanAndRestart {
         [System.Windows.Forms.Form]$Form
     )
 	
-    $Form.Close()
+    if ($Form) {
+        $Form.Close()
+    }
 	
 	# Clear recycle bin
 	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
