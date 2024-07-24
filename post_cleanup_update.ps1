@@ -436,6 +436,7 @@ function Remove-RegistryPropertyAndLog {
     }
 }
 
+
 Function Araid-CleanAndRestart {
 	# Show Taskbar
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
@@ -501,6 +502,25 @@ Function Araid-CleanAndRestart {
 	$value = 1
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	Write-Log "Show hidden files, folders and drives"
+
+	# Show This PC on desktop
+	$registryPath="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel"
+	$propertyName="{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Show This PC on desktop"
+	
+	# Disable Automatic Restart
+	$registryPath="HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl"
+	$propertyName="AutoReboot"
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Disable Automatic Restart"
+	
+	$propertyName="CrashDumpEnabled"
+	$value = 2
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Changed debugging: Kernel memory dump"
 	
 	Clear-UserCacheFiles
 	Clear-GlobalWindowsCache
@@ -655,6 +675,7 @@ Function Araid-CleanAndRestart {
 }
 
 function kill-necessary {
+	
 	$commands = @(
         "taskkill /f /im explorer.exe",
         "taskkill /f /im skype.exe",
@@ -698,7 +719,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
         public const int WS_MINIMIZEBOX = 0x00020000;
         public const int WS_MAXIMIZEBOX = 0x00010000;
         public const int WS_SYSMENU = 0x00080000;
-        public const int WS_THICKFRAME = 0x00040000; // Added this line
+        public const int WS_THICKFRAME = 0x00040000; // disable resize
         public const uint SWP_NOSIZE = 0x0001;
         public const uint SWP_NOMOVE = 0x0002;
         public const uint SWP_NOZORDER = 0x0004;
