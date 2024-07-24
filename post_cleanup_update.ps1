@@ -674,8 +674,8 @@ Function Araid-CleanAndRestart {
 	}
 
 	$randomCleanMGR = Get-Random -Minimum 0 -Maximum 10000
-	CLEANMGR /sageset:$randomCleanMGR
-	CLEANMGR /sagerun:$randomCleanMGR
+	Start-Process CLEANMGR.exe -ArgumentList "/sageset:$randomCleanMGR" -Wait
+	Start-Process CLEANMGR.exe -ArgumentList "/sagerun:$randomCleanMGR" -Wait
 	Write-Log "CLEANMGR /sageset:$randomCleanMGR"
 	
 	# Wait for user confirmation
