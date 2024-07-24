@@ -677,7 +677,7 @@ Function Araid-CleanAndRestart {
 		Write-Log "$($_.InstanceId) has been removed"
 	}
 
-	cleanmgr /d $env:homedrive
+	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait
 	Write-Log "cleanmgr /d $env:homedrive"
 	
 	# Wait for user confirmation
