@@ -439,6 +439,13 @@ function Remove-RegistryPropertyAndLog {
 
 
 Function Araid-CleanAndRestart {
+	
+	param (
+        [System.Windows.Forms.Form]$Form
+    )
+	
+    $Form.Close()
+	
 	# Clear recycle bin
 	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 	Write-Log "Clear recycle bin"
@@ -809,8 +816,7 @@ $button3.Add_Click({
     $result = [System.Windows.Forms.MessageBox]::Show("No Ragrets?", "Confirmation", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
     if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
         $allowClose = $true
-        $form.Close()
-        Araid-CleanAndRestart
+        Araid-CleanAndRestart -Form $form
     }
 })
 
