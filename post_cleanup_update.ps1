@@ -78,7 +78,7 @@ Function Clear-GlobalWindowsCache
 #1024: InPrivate Filtering Data
 #2048: Cached feeds and WebSlices
 #4096: Preferences
-    "$env:windir\System32\rundll32.exe" InetCpl.cpl, ClearMyTracksByProcess 8191
+    Start-Process -FilePath "$env:windir\System32\rundll32.exe" -ArgumentList "InetCpl.cpl, ClearMyTracksByProcess 8191" -Wait
 
 }
 
