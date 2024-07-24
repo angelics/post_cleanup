@@ -692,6 +692,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
         public const int WS_MINIMIZEBOX = 0x00020000;
         public const int WS_MAXIMIZEBOX = 0x00010000;
         public const int WS_SYSMENU = 0x00080000;
+        public const int WS_THICKFRAME = 0x00040000; // Added this line
         public const uint SWP_NOSIZE = 0x0001;
         public const uint SWP_NOMOVE = 0x0002;
         public const uint SWP_NOZORDER = 0x0004;
@@ -708,11 +709,11 @@ $form.Text = "Araid Scripts"
 $form.Size = New-Object System.Drawing.Size(480, 250)
 $form.TopMost = $true
 
-# Remove minimize, maximize, and close buttons
+# Remove minimize, maximize, close buttons and disable form resize
 $form.Add_Shown({
     $hWnd = $form.Handle
     $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
-    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU)
+    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU) -band -bnot ([Win32]::WS_THICKFRAME)
     [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
     [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
 })
