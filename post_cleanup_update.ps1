@@ -655,18 +655,14 @@ Function Araid-CleanAndRestart {
 
 	# Loop through all hidden devices to create the arguments
 	ForEach($dev in $unknown_devs){
-		$arguments = "/remove-device $($dev.InstanceId)"
+		$arguments = "pnputil.exe /remove-device $($dev.InstanceId)&&"
 		$commands += $arguments
 	}
-
-	# Combine all commands into a single string
-	$combinedCommands = $commands -join " & pnputil.exe "
-
-	# Construct the full command
-	$fullCommand = "pnputil.exe $combinedCommands"
-
+	
+	$commandsString = $commands -join ' & '
+	
 	# Start a single process to run the combined command
-	Start-Process -FilePath "powershell.exe" -ArgumentList "-Command $fullCommand" -Wait
+	Start-Process -FilePath "powershell.exe" -ArgumentList "-Command $commandsString" -Wait
 
 	# Log the action
 	$unknown_devs | ForEach-Object {
