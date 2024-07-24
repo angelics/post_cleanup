@@ -351,6 +351,9 @@ function Check-winget {
 
 Function Araid-install-package {
 	
+	Write-Host "install started."
+	Write-Host "Please wait..."
+	
 	Check-winget
 
     try {
@@ -372,6 +375,9 @@ Function Araid-install-package {
 }
 
 function Araid-upgrade-package {
+	
+	Write-Host "upgrade started."
+	Write-Host "Please wait..."
 	
 	Check-winget
 	
