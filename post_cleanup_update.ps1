@@ -2,7 +2,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $global:wingetChecked = $false
 
-$log = "$env:windir\Logs\araid\araid_post.log"
+$log = "$env:systemroot\Logs\araid\araid_post.log"
 
 # Get the directory of the original log file
 $logDirectory = Split-Path -Path $log -Parent
@@ -55,10 +55,10 @@ Function Set-RegistryProperty {
 #------------------------------------------------------------------#
 Function Clear-GlobalWindowsCache
 {
-    Remove-Dir "$env:windir\Temp"
+    Remove-Dir "$env:systemroot\Temp"
     Remove-Dir "$env:homedrive\Temp"
     Remove-Dir "$env:homedrive\tmp"
-    Remove-Dir "$env:windir\Prefetch"
+    Remove-Dir "$env:systemroot\Prefetch"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
@@ -78,7 +78,7 @@ Function Clear-GlobalWindowsCache
 #1024: InPrivate Filtering Data
 #2048: Cached feeds and WebSlices
 #4096: Preferences
-    Start-Process -FilePath "$env:windir\System32\rundll32.exe" -ArgumentList "InetCpl.cpl, ClearMyTracksByProcess 8191" -Wait
+    Start-Process -FilePath "$env:systemroot\System32\rundll32.exe" -ArgumentList "InetCpl.cpl, ClearMyTracksByProcess 8191" -Wait
 
 }
 
@@ -616,26 +616,26 @@ Function Araid-CleanAndRestart {
 
 	# Set wallpaper based on manufacturer
 	$Manufacturers = @(
-		"$env:windir\Web\Wallpaper\backgroundDefault.jpg",
-		"$env:windir\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
-		"$env:windir\Web\Wallpaper\Dell\01.jpg",
-		"$env:windir\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
-		"$env:windir\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
-		"$env:windir\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
-		"$env:windir\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
-		"$env:windir\Web\Wallpaper\dell\AFX_FHD.png",
-		"$env:windir\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
-		"$env:windir\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
-		"$env:windir\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
-		"$env:windir\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
-		"$env:windir\Web\Wallpaper\Lenovo\Black Burst.jpg",
-		"$env:windir\Web\Wallpaper\Lenovo\3.jpg",
-		"$env:windir\ASUS\wallpapers\ASUS.jpg",
-		"$env:windir\Web\Wallpaper\acer01.jpg",
-		"$env:windir\Web\Wallpaper\WALLPAPER.jpg",
-		"$env:windir\Web\Wallpaper\img0.jpg",
-		"$env:windir\Web\Wallpaper\Surface\Surface.jpg",
-		"$env:windir\Web\Wallpaper\Windows\img0.jpg"
+		"$env:systemroot\Web\Wallpaper\backgroundDefault.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\01.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
+		"$env:systemroot\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
+		"$env:systemroot\Web\Wallpaper\dell\AFX_FHD.png",
+		"$env:systemroot\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
+		"$env:systemroot\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
+		"$env:systemroot\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
+		"$env:systemroot\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
+		"$env:systemroot\Web\Wallpaper\Lenovo\Black Burst.jpg",
+		"$env:systemroot\Web\Wallpaper\Lenovo\3.jpg",
+		"$env:systemroot\ASUS\wallpapers\ASUS.jpg",
+		"$env:systemroot\Web\Wallpaper\acer01.jpg",
+		"$env:systemroot\Web\Wallpaper\WALLPAPER.jpg",
+		"$env:systemroot\Web\Wallpaper\img0.jpg",
+		"$env:systemroot\Web\Wallpaper\Surface\Surface.jpg",
+		"$env:systemroot\Web\Wallpaper\Windows\img0.jpg"
 	)
 
 	foreach ($manufacturer in $Manufacturers) {
