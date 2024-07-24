@@ -655,14 +655,21 @@ Function Araid-CleanAndRestart {
 
 	# Loop through all hidden devices to create the arguments
 	ForEach($dev in $unknown_devs){
-		$arguments = "pnputil.exe /remove-device $($dev.InstanceId)&&"
+		$arguments = "pnputil.exe /remove-device `"$($dev.InstanceId)`""
 		$commands += $arguments
 	}
 	
-	$commandsString = $commands -join ' & '
-	
+	# Check if there are commands to run
+	if ($commands.Count -eq 0) {
+		Write-Host "No unknown devices found."
+		exit
+	}
+
+	# Combine commands into a single string
+	$commandsString = $commands -join ' && '
+
 	# Start a single process to run the combined command
-	Start-Process -FilePath "powershell.exe" -ArgumentList "-Command $commandsString" -Wait
+	Start-Process -FilePath "cmd.exe" -ArgumentList "-Command $commandsString" -Wait
 
 	# Log the action
 	$unknown_devs | ForEach-Object {
