@@ -58,7 +58,6 @@ Function Clear-GlobalWindowsCache
     Remove-Dir "C:\Windows\Temp"
     Remove-Dir "C:\Temp"
     Remove-Dir "C:\tmp"
-    Remove-Dir "C:\$Recycle.Bin"
     Remove-Dir "C:\Windows\Prefetch"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
@@ -438,6 +437,10 @@ function Remove-RegistryPropertyAndLog {
 
 
 Function Araid-CleanAndRestart {
+	# Clear recycle bin
+	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+	Write-Log "Clear recycle bin"
+	
 	# Show Taskbar
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
 	$propertyName = 'Settings'
@@ -670,6 +673,11 @@ Function Araid-CleanAndRestart {
 		Write-Log "$($_.InstanceId) has been removed"
 	}
 
+	$randomCleanMGR = Get-Random -Minimum 0 -Maximum 10000
+	CLEANMGR /sageset:$randomCleanMGR
+	CLEANMGR /sagerun:$randomCleanMGR
+	Write-Log "CLEANMGR /sageset:$randomCleanMGR"
+	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
 }
