@@ -440,6 +440,9 @@ function Remove-RegistryPropertyAndLog {
 
 Function Araid-CleanAndRestart {
 	
+	Write-Host "Cleaning started."
+	Write-Host "Please wait..."
+	
 	param (
         [System.Windows.Forms.Form]$Form
     )
