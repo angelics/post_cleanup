@@ -197,7 +197,7 @@ Function Clear-MozillaTemplate {
             ForEach ($cachePath in $possibleCachePaths) {
                 Remove-Dir "$AppDataPath\$cachePath"
             }
-			$possibleCacheFiles = @("places.sqlite-wal", "places.sqlite", "places.sqlite-shm", "prefs.js","SiteSecurityServiceState.txt", "formhistory.sqlite", "favicons.sqlite-wal")
+			$possibleCacheFiles = @("places.sqlite-wal", "places.sqlite", "places.sqlite-shm", "prefs.js","SiteSecurityServiceState.txt", "formhistory.sqlite", "formhistory.sqlite-journal", "favicons.sqlite-wal", "cookies.sqlite")
             ForEach ($cacheFile in $possibleCacheFiles) {
                 Remove-File "$AppDataPath\$cacheFile"
             }
