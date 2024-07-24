@@ -2,7 +2,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $global:wingetChecked = $false
 
-$log = "C:\Windows\Logs\araid\araid_post.log"
+$log = "$env:windir\Logs\araid\araid_post.log"
 
 # Get the directory of the original log file
 $logDirectory = Split-Path -Path $log -Parent
@@ -55,16 +55,16 @@ Function Set-RegistryProperty {
 #------------------------------------------------------------------#
 Function Clear-GlobalWindowsCache
 {
-    Remove-Dir "C:\Windows\Temp"
-    Remove-Dir "C:\Temp"
-    Remove-Dir "C:\tmp"
-    Remove-Dir "C:\Windows\Prefetch"
+    Remove-Dir "$env:windir\Temp"
+    Remove-Dir "$env:homedrive\Temp"
+    Remove-Dir "$env:homedrive\tmp"
+    Remove-Dir "$env:windir\Prefetch"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
-    Remove-Dir "C:\Intel"
-    Remove-Dir "C:\AMD"
-    Remove-Dir "C:\NVIDIA"
+    Remove-Dir "$env:homedrive\Intel"
+    Remove-Dir "$env:homedrive\AMD"
+    Remove-Dir "$env:homedrive\NVIDIA"
 #1: Temporary Internet Files
 #2: Cookies
 #4: History
@@ -78,7 +78,7 @@ Function Clear-GlobalWindowsCache
 #1024: InPrivate Filtering Data
 #2048: Cached feeds and WebSlices
 #4096: Preferences
-    C:\Windows\System32\rundll32.exe InetCpl.cpl, ClearMyTracksByProcess 8191
+    "$env:windir\System32\rundll32.exe" InetCpl.cpl, ClearMyTracksByProcess 8191
 
 }
 
@@ -616,26 +616,26 @@ Function Araid-CleanAndRestart {
 
 	# Set wallpaper based on manufacturer
 	$Manufacturers = @(
-		"c:\Windows\Web\Wallpaper\backgroundDefault.jpg",
-		"c:\Windows\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
-		"c:\Windows\Web\Wallpaper\Dell\01.jpg",
-		"c:\Windows\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
-		"c:\Windows\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
-		"c:\Windows\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
-		"c:\Windows\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
-		"c:\Windows\Web\Wallpaper\dell\AFX_FHD.png",
-		"c:\Windows\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
-		"c:\Windows\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
-		"c:\Windows\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
-		"c:\Windows\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
-		"c:\Windows\Web\Wallpaper\Lenovo\Black Burst.jpg",
-		"c:\Windows\Web\Wallpaper\Lenovo\3.jpg",
-		"c:\Windows\ASUS\wallpapers\ASUS.jpg",
-		"c:\Windows\Web\Wallpaper\acer01.jpg",
-		"c:\Windows\Web\Wallpaper\WALLPAPER.jpg",
-		"c:\Windows\Web\Wallpaper\img0.jpg",
-		"c:\Windows\Web\Wallpaper\Surface\Surface.jpg",
-		"c:\Windows\Web\Wallpaper\Windows\img0.jpg"
+		"$env:windir\Web\Wallpaper\backgroundDefault.jpg",
+		"$env:windir\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
+		"$env:windir\Web\Wallpaper\Dell\01.jpg",
+		"$env:windir\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
+		"$env:windir\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
+		"$env:windir\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
+		"$env:windir\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
+		"$env:windir\Web\Wallpaper\dell\AFX_FHD.png",
+		"$env:windir\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
+		"$env:windir\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
+		"$env:windir\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
+		"$env:windir\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
+		"$env:windir\Web\Wallpaper\Lenovo\Black Burst.jpg",
+		"$env:windir\Web\Wallpaper\Lenovo\3.jpg",
+		"$env:windir\ASUS\wallpapers\ASUS.jpg",
+		"$env:windir\Web\Wallpaper\acer01.jpg",
+		"$env:windir\Web\Wallpaper\WALLPAPER.jpg",
+		"$env:windir\Web\Wallpaper\img0.jpg",
+		"$env:windir\Web\Wallpaper\Surface\Surface.jpg",
+		"$env:windir\Web\Wallpaper\Windows\img0.jpg"
 	)
 
 	foreach ($manufacturer in $Manufacturers) {
@@ -676,10 +676,8 @@ Function Araid-CleanAndRestart {
 		Write-Log "$($_.InstanceId) has been removed"
 	}
 
-	$randomCleanMGR = Get-Random -Minimum 0 -Maximum 10000
-	Start-Process CLEANMGR.exe -ArgumentList "/sageset:$randomCleanMGR" -Wait
-	Start-Process CLEANMGR.exe -ArgumentList "/sagerun:$randomCleanMGR" -Wait
-	Write-Log "CLEANMGR /sageset:$randomCleanMGR"
+	cleanmgr /d $env:homedrive
+	Write-Log "cleanmgr /d $env:homedrive"
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
