@@ -398,6 +398,25 @@ function Araid-upgrade-package {
 	
 	Write-Host "upgrade done."
 }
+function Araid-LegacyRepair {
+	
+	Write-Host "Legacy repair started."
+	Write-Host "Please wait..."
+		
+    $commands = @(
+        "Dism /Online /Cleanup-Image /RestoreHealth",
+        "sfc /scannow",
+        "chkdsk $env:homedrive /f"
+        
+    )
+    
+    $commandString = $commands -join " && "
+    
+	Write-Log "Repair started"
+    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait
+	
+	Write-Host "Repair done."
+}
 
 function Remove-RegistryPathAndLog {
     param(
@@ -440,10 +459,6 @@ function Remove-RegistryPropertyAndLog {
 
 Function Araid-CleanAndRestart {
 		
-	param (
-        [System.Windows.Forms.Form]$Form
-    )
-	
 	Write-Host "Cleaning started."
 	Write-Host "Please wait..."
 
@@ -685,10 +700,6 @@ Function Araid-CleanAndRestart {
 		Write-Log "$($_.InstanceId) has been removed"
 	}
 	
-	if ($Form) {
-        $Form.Close()
-    }
-
 	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait
 	Write-Log "cleanmgr /d $env:homedrive"
 	
@@ -755,7 +766,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 250)
+$form.Size = New-Object System.Drawing.Size(480, 300)
 $form.TopMost = $true
 
 # Remove minimize, maximize, close buttons and disable form resize
@@ -821,8 +832,26 @@ $button3.Add_Click({
     $result = [System.Windows.Forms.MessageBox]::Show("No Ragrets?", "Confirmation", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
     if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
         $allowClose = $true
-        Araid-CleanAndRestart -Form $form
+		$Form.Close()
+        Araid-CleanAndRestart
     }
+})
+
+# Create label for Clean and Restart
+$label4 = New-Object System.Windows.Forms.Label
+$label4.Text = "Legacy Repair and reboot"
+$label4.Location = New-Object System.Drawing.Point(270, 220)
+$label4.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for Clean and Restart
+$button4 = New-Object System.Windows.Forms.Button
+$button4.Text = "Legacy Repair"
+$button4.Location = New-Object System.Drawing.Point(50, 210)
+$button4.Size = New-Object System.Drawing.Size(190, 30)
+$button4.Add_Click({
+	$allowClose = $true
+	$Form.Close()
+	Araid-LegacyRepair
 })
 
 # Add buttons to the form
@@ -832,6 +861,8 @@ $form.Controls.Add($label2)
 $form.Controls.Add($button2)
 $form.Controls.Add($label3)
 $form.Controls.Add($button3)
+$form.Controls.Add($label4)
+$form.Controls.Add($button4)
 
 # Show the form
 $form.ShowDialog()
