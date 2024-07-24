@@ -446,11 +446,7 @@ Function Araid-CleanAndRestart {
 	
 	Write-Host "Cleaning started."
 	Write-Host "Please wait..."
-	
-    if ($Form) {
-        $Form.Close()
-    }
-	
+
 	# Clear recycle bin
 	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 	Write-Log "Clear recycle bin"
@@ -688,6 +684,10 @@ Function Araid-CleanAndRestart {
 	$unknown_devs | ForEach-Object {
 		Write-Log "$($_.InstanceId) has been removed"
 	}
+	
+	if ($Form) {
+        $Form.Close()
+    }
 
 	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait
 	Write-Log "cleanmgr /d $env:homedrive"
