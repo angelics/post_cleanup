@@ -190,7 +190,6 @@ Function Clear-MozillaTemplate {
     if (Test-Path $path) {
         $profiles = Get-ChildItem $path | Where-Object { $_.Name -match "default" }
         foreach ($profile in $profiles) {
-            Write-Host "Clearing cache for profile: $($profile.Name)"
             $AppDataPath = $profile.FullName
             $possibleCachePaths = @("cache", "cache2\entries", "cache2", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage", "sessionstore-backups", "jumpListCache", "thumbnails")
             ForEach ($cachePath in $possibleCachePaths) {
@@ -411,7 +410,6 @@ function Remove-RegistryPathAndLog {
         Remove-Item -Path $RegistryPath -Recurse -Force
         Write-Log ("Removed registry path $RegistryPath.")
     } else {
-        Write-Host "Registry path $RegistryPath does not exist."
         Write-Log "Registry path $RegistryPath does not exist."
     }
 }
@@ -431,12 +429,10 @@ function Remove-RegistryPropertyAndLog {
             Remove-ItemProperty -Path $RegistryPath -Name $PropertyName -Force
             Write-Log ("Removed property $PropertyName from registry path $RegistryPath")
         } else {
-            Write-Host "Property $PropertyName does not exist at path $RegistryPath"
             Write-Log "Property $PropertyName does not exist at path $RegistryPath"
         }
     }
     else {
-        Write-Host "Registry path $RegistryPath does not exist."
         Write-Log "Registry path $RegistryPath does not exist."
     }
 }
@@ -667,7 +663,6 @@ Function Araid-CleanAndRestart {
 	
 	# Check if there are commands to run
 	if ($commands.Count -eq 0) {
-		Write-Host "No unknown devices found."
 		exit
 	}
 
