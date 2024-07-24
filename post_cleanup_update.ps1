@@ -406,7 +406,7 @@ function Araid-LegacyRepair {
     $commands = @(
         "Dism /Online /Cleanup-Image /RestoreHealth",
         "sfc /scannow",
-        "chkdsk $env:homedrive /f"
+        "echo y | chkdsk $env:homedrive /f"
         
     )
     
