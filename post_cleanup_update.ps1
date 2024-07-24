@@ -126,25 +126,6 @@ Function Clear-WindowsUserCacheFiles
 }
 
 #------------------------------------------------------------------#
-#- Stop-BrowserSessions                                            #
-#------------------------------------------------------------------#
-Function Stop-BrowserSessions
-{
-    $browserNames = @("firefox.exe", "chrome.exe", "msedge.exe")
-    ForEach ($browserName in $browserNames)
-    {
-        try
-        {
-            taskkill /f /im $browserName | Out-Null
-			Write-Log "Successfully terminated $browserName"
-        }
-        catch
-        {
-        }
-    }
-}
-
-#------------------------------------------------------------------#
 #- Remove-Dir                                               #
 #------------------------------------------------------------------#
 Function Remove-Dir
@@ -667,12 +648,31 @@ Function Araid-CleanAndRestart {
 	Read-Host -Prompt "Press Enter to restart the computer..."
 }
 
-taskkill /f /im explorer.exe
-Write-Log "Task killed: explorer.exe"
-taskkill /f /im skype.exe
-Write-Log "Task killed: skype.exe"
-taskkill /f /im discord.exe
-Write-Log "Task killed: discord.exe"
+function kill-necessary {
+	$commands = @(
+        "taskkill /f /im explorer.exe",
+        "taskkill /f /im skype.exe",
+        "taskkill /f /im discord.exe",
+        "taskkill /f /im firefox.exe",
+        "taskkill /f /im chrome.exe",
+        "taskkill /f /im msedge.exe"
+	)
+
+	$commandString = $commands -join " && "
+    
+	Write-Log "Task killed: explorer.exe"
+	Write-Log "Task killed: skype.exe"
+	Write-Log "Task killed: discord.exe"
+	Write-Log "Task killed: firefox.exe"
+	Write-Log "Task killed: chrome.exe"
+	Write-Log "Task killed: msedge.exe"
+	
+    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait
+	
+}
+
+Clear-Host
+kill-necessary
 
 # Check if the Win32 type already exists
 if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
