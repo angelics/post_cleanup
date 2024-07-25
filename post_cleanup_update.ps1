@@ -402,7 +402,12 @@ function Araid-LegacyRepair {
 	
 	Write-Host "Legacy repair started."
 	Write-Host "Please wait..."
-		
+	
+	# Clear console history
+	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
+	Write-Log "Clear console history"
+	Remove-File "$ConsoleHistory"
+	
     $commands = @(
         "Dism /Online /Cleanup-Image /RestoreHealth",
         "sfc /scannow",
