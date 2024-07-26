@@ -367,21 +367,41 @@ Function Clear-NotepadPP
     }
 }
 
+# Function to get the current version of winget
+function Get-WingetVersion {
+    $wingetVersion = (winget --version) -replace 'winget v', ''
+    return [version]$wingetVersion
+}
+
 function Check-winget {
 	
 	if ($global:wingetChecked) {
         return
     }
 	
-	# Check if winget is installed, win10 not installed by default
+	# Check the current version of winget
+	$wingetVersion = Get-WingetVersion
+
+	# Define the minimum required version
+	$minVersion = [version]"1.6"
+	
+	# Check if winget is installed and its version
+	$wingetInstalled = Get-Command winget -ErrorAction SilentlyContinue
+	if ($wingetInstalled) {
+		$wingetVersion = Get-WingetVersion
+	} else {
+		$wingetVersion = [version]"0.0" # Dummy version for non-installed case
+	}
+	
 	# https://github.com/microsoft/winget-cli/issues/1861
-	if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+	# Install or upgrade winget if necessary
+	if (-not $wingetInstalled -or $wingetVersion -lt $minVersion) {
 		# Install winget
 		IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile ".\Windows10_PreinstallKit.zip"; Expand-Archive -Path ".\Windows10_PreinstallKit.zip" -DestinationPath ".\Windows10_PreinstallKit" -Force; Move-Item -Path ".\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination .; Remove-Item -Path ".\Windows10_PreinstallKit.zip" -Force; Remove-Item -Path ".\Windows10_PreinstallKit" -Recurse -Force
 		Add-AppxPackage -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
 		Remove-File ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
 		Add-AppxPackage -Path https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx
-		Add-AppxPackage -Path "https://aka.ms/getwinget"
+		Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
 	}
 	
 	Write-Output "y" | winget upgrade
