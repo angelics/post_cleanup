@@ -58,6 +58,7 @@ Function Clear-GlobalWindowsCache
 	#$env:WINDIR = C:\Windows
 	#$env:systemroot = C:\Windows
 	#$env:homedrive = C:\
+	#$env:ProgramData = C:\ProgramData
     Remove-Dir "$env:systemroot\Temp"
     Remove-Dir "$env:homedrive\Temp"
     Remove-Dir "$env:homedrive\tmp"
@@ -65,6 +66,7 @@ Function Clear-GlobalWindowsCache
     Remove-Dir "$env:homedrive\Intel"
     Remove-Dir "$env:homedrive\AMD"
     Remove-Dir "$env:homedrive\NVIDIA"
+	Remove-Dir "$env:ProgramData\USOShared\Logs" # Delivery Optimization Files
 #1: Temporary Internet Files
 #2: Cookies
 #4: History
@@ -98,6 +100,8 @@ Function Clear-UserCacheFiles
         Clear-SteamCacheFiles $localUser
         Clear-TeamsCacheFiles $localUser
         Clear-WindowsUserCacheFiles
+        Clear-MicrosoftDefenderAntivirus
+        Clear-WindowsUpdateCache
         Clear-NotepadPP $localUser
     }
 }
@@ -129,6 +133,36 @@ Function Clear-WindowsUserCacheFiles
 	Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
     Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
+	Remove-Dir "$env:LOCALAPPDATA\D3DSCache" # DirectX Shader Cache
+	Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" # Thumbnails
+}
+
+Function Clear-MicrosoftDefenderAntivirus
+{
+	#$env:ProgramData = C:\ProgramData
+	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\CacheManager"
+	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Quick"
+	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Resource"
+	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Service"
+}
+
+function Clean-WindowsUpdateCache {
+	
+	#$env:WINDIR = C:\Windows
+	
+    try {
+        # Stop Windows Update service
+        Stop-Service -Name wuauserv -Force
+
+        # Delete Windows Update cache files
+        Remove-Dir "$env:WINDIR\SoftwareDistribution\Download"
+		Write-Log "Delete Windows Update cache files"
+		
+        # Start Windows Update service
+        Start-Service -Name wuauserv
+    } catch {
+        Write-Log "Failed to clean Windows Update cache: $_"
+    }
 }
 
 #------------------------------------------------------------------#
