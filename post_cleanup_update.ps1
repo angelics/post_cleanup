@@ -435,10 +435,14 @@ function Araid-upgrade-package {
 	Write-Log "Blocking upgrade for Microsoft.DevHome"
 	Write-Log "Blocking upgrade for Cisco.Webex"
 	Write-Log "Start winget upgrade softwares."
-    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait
-	
-	Write-Host "upgrade done."
+    try {
+        Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait -NoNewWindow
+        Write-Host "Upgrade done."
+    } catch {
+        Write-Host "An error occurred: $_"
+    }
 }
+
 function Araid-LegacyRepair {
 	
 	Write-Host "Legacy repair started."
