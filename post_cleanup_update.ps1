@@ -84,9 +84,6 @@ Function Clear-GlobalWindowsCache
 
 }
 
-#------------------------------------------------------------------#
-#- Clear-UserCacheFiles                                            #
-#------------------------------------------------------------------#
 Function Clear-UserCacheFiles
 {
     ForEach ($localUser in (Get-ChildItem "C:\users").Name)
@@ -146,7 +143,7 @@ Function Clear-MicrosoftDefenderAntivirus
 	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Service"
 }
 
-function Clean-WindowsUpdateCache {
+function Clear-WindowsUpdateCache {
 	
 	#$env:WINDIR = C:\Windows
 	
