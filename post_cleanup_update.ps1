@@ -55,13 +55,13 @@ Function Set-RegistryProperty {
 #------------------------------------------------------------------#
 Function Clear-GlobalWindowsCache
 {
+	#$env:WINDIR = C:\Windows
+	#$env:systemroot = C:\Windows
+	#$env:homedrive = C:\
     Remove-Dir "$env:systemroot\Temp"
     Remove-Dir "$env:homedrive\Temp"
     Remove-Dir "$env:homedrive\tmp"
     Remove-Dir "$env:systemroot\Prefetch"
-    Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
-    Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
-    Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
     Remove-Dir "$env:homedrive\Intel"
     Remove-Dir "$env:homedrive\AMD"
     Remove-Dir "$env:homedrive\NVIDIA"
@@ -97,7 +97,7 @@ Function Clear-UserCacheFiles
         Clear-MicrosoftOfficeCacheFiles $localUser
         Clear-SteamCacheFiles $localUser
         Clear-TeamsCacheFiles $localUser
-        Clear-WindowsUserCacheFiles $localUser
+        Clear-WindowsUserCacheFiles
         Clear-NotepadPP $localUser
     }
 }
@@ -107,21 +107,28 @@ Function Clear-UserCacheFiles
 #------------------------------------------------------------------#
 Function Clear-WindowsUserCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Internet Explorer\Cache"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Internet Explorer\Recovery"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Internet Explorer\Tiles"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Terminal Server Client\Cache"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\Caches"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\History\low"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\IECompatCache"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\IECompatUaCache"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\IEDownloadHistory"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\INetCache"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\WebCache"
-    Remove-Dir "C:\Users\$user\AppData\Local\Microsoft\Windows\WER"
-    Remove-Dir "C:\Users\$user\AppData\Local\Temp"
+	#$env:appdata = C:\Users\LocalAdmin\AppData\Roaming
+	#$env:LOCALAPPDATA = C:\Users\LocalAdmin\AppData\Local
+	#$env:USERPROFILE = C:\Users\LocalAdmin
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Cache"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Recovery"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Tiles"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Terminal Server Client\Cache"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\Caches"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\History\low"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\IECompatCache"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\IECompatUaCache"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\IEDownloadHistory"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\INetCache"
+	Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\INetCookies"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\Temporary Internet Files"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\WebCache"
+    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\WER"
+    Remove-Dir "$env:LOCALAPPDATA\Temp"
+	Remove-Dir "$env:LOCALAPPDATA\CrashDumps"
+	Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
+    Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
+    Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
 }
 
 #------------------------------------------------------------------#
