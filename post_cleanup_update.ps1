@@ -367,11 +367,13 @@ Function Clear-NotepadPP
     }
 }
 
-# Function to get the current version of winget
 function Get-WingetVersion {
     try {
-        $wingetVersion = (winget --version) -replace 'winget v', ''
-        return [version]$wingetVersion
+        # Run winget --version and remove any leading/trailing whitespace and the "v" prefix
+        $wingetVersionString = (winget --version) -replace '^v', '' -replace '\s+', ''
+        
+        # Convert to [version] type
+        return [version]$wingetVersionString
     } catch {
         Write-Error "Failed to parse winget version. $_"
         return [version]"0.0" # Return a default value if there's an error
