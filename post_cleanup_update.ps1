@@ -59,14 +59,14 @@ Function Clear-GlobalWindowsCache
 	#$env:systemroot = C:\Windows
 	#$env:homedrive = C:\
 	#$env:ProgramData = C:\ProgramData
-    Remove-Dir "$env:systemroot\Temp"
-    Remove-Dir "$env:homedrive\Temp"
-    Remove-Dir "$env:homedrive\tmp"
-    Remove-Dir "$env:systemroot\Prefetch"
-    Remove-Dir "$env:homedrive\Intel"
-    Remove-Dir "$env:homedrive\AMD"
-    Remove-Dir "$env:homedrive\NVIDIA"
-	Remove-Dir "$env:ProgramData\USOShared\Logs" # Delivery Optimization Files
+    Remove-SubFile "$env:systemroot\Temp"
+    Remove-SubFile "$env:homedrive\Temp"
+    Remove-SubFile "$env:homedrive\tmp"
+    Remove-SubFile "$env:systemroot\Prefetch"
+    Remove-File "$env:homedrive\Intel"
+    Remove-File "$env:homedrive\AMD"
+    Remove-File "$env:homedrive\NVIDIA"
+	Remove-SubFile "$env:ProgramData\USOShared\Logs" # Delivery Optimization Files
 #1: Temporary Internet Files
 #2: Cookies
 #4: History
@@ -111,36 +111,36 @@ Function Clear-WindowsUserCacheFiles
 	#$env:appdata = C:\Users\LocalAdmin\AppData\Roaming
 	#$env:LOCALAPPDATA = C:\Users\LocalAdmin\AppData\Local
 	#$env:USERPROFILE = C:\Users\LocalAdmin
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Cache"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Recovery"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Tiles"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Terminal Server Client\Cache"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\Caches"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\History\low"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\IECompatCache"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\IECompatUaCache"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\IEDownloadHistory"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\INetCache"
-	Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\INetCookies"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\Temporary Internet Files"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\WebCache"
-    Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\WER"
-    Remove-Dir "$env:LOCALAPPDATA\Temp"
-	Remove-Dir "$env:LOCALAPPDATA\CrashDumps"
-	Remove-Dir "$env:APPDATA\Microsoft\Windows\Recent"
-    Remove-Dir "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
-    Remove-Dir "$env:APPDATA\Microsoft\Windows\CustomDestinations"
-	Remove-Dir "$env:LOCALAPPDATA\D3DSCache" # DirectX Shader Cache
-	Remove-Dir "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" # Thumbnails
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Cache"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Recovery"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Tiles"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Terminal Server Client\Cache"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Caches"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\History\low"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IECompatCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IECompatUaCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IEDownloadHistory"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\INetCache"
+	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\INetCookies"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Temporary Internet Files"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\WebCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\WER"
+    Remove-SubFile "$env:LOCALAPPDATA\Temp"
+	Remove-SubFile "$env:LOCALAPPDATA\CrashDumps"
+	Remove-SubFile "$env:APPDATA\Microsoft\Windows\Recent"
+    Remove-SubFile "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
+    Remove-SubFile "$env:APPDATA\Microsoft\Windows\CustomDestinations"
+	Remove-SubFile "$env:LOCALAPPDATA\D3DSCache" # DirectX Shader Cache
+	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" # Thumbnails
 }
 
 Function Clear-MicrosoftDefenderAntivirus
 {
 	#$env:ProgramData = C:\ProgramData
-	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\CacheManager"
-	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Quick"
-	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Resource"
-	Remove-Dir "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Service"
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\CacheManager"
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Quick"
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Resource"
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Service"
 }
 
 function Clear-WindowsUpdateCache {
@@ -152,7 +152,7 @@ function Clear-WindowsUpdateCache {
         Stop-Service -Name wuauserv -Force
 
         # Delete Windows Update cache files
-        Remove-Dir "$env:WINDIR\SoftwareDistribution\Download"
+        Remove-SubFile "$env:WINDIR\SoftwareDistribution\Download"
 		Write-Log "Delete Windows Update cache files"
 		
         # Start Windows Update service
@@ -162,30 +162,24 @@ function Clear-WindowsUpdateCache {
     }
 }
 
-#------------------------------------------------------------------#
-#- Remove-Dir                                               #
-#------------------------------------------------------------------#
-Function Remove-Dir
+Function Remove-SubFile
 {
     param([Parameter(Mandatory = $true)][string]$path)
 
     if ((Test-Path "$path"))
     {
         Get-ChildItem -Path "$path" -Force -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-		Write-Log "directory removed $path"
+		Write-Log "SubFile removed $path"
     }
 }
 
-#------------------------------------------------------------------#
-#- Remove-File                                               #
-#------------------------------------------------------------------#
 Function Remove-File
 {
     param([Parameter(Mandatory = $true)][string]$path)
 
     if ((Test-Path "$path"))
     {
-        Remove-Item -Path "$path" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$path" -Recurse -Force -ErrorAction SilentlyContinue
 		Write-Log "file removed $path"
     }
 }
@@ -206,7 +200,7 @@ Function Clear-ChromeTemplate
         $possibleCachePaths = @("Cache", "Cache2\entries\", "ChromeDWriteFontCache", "Code Cache", "GPUCache", "JumpListIcons", "JumpListIconsOld", "Media Cache", "Service Worker", "Top Sites", "VisitedLinks", "Web Data", "Preferences", "Local Storage", "Session Storage", "Cookies", "Network", "Sessions" , "IndexedDB")
         ForEach ($cachePath in $possibleCachePaths)
         {
-            Remove-Dir "$path\$cachePath"
+            Remove-SubFile "$path\$cachePath"
         }
 		$possibleCacheFiles = @("History", "History-journal", "Shortcuts", "Shortcuts-journal", "DIPS", "DIPS-journal", "Network Action Predictor", "Network Action Predictor-journal")
 		ForEach ($cacheFile in $possibleCacheFiles)
@@ -231,7 +225,7 @@ Function Clear-MozillaTemplate {
             $AppDataPath = $profile.FullName
             $possibleCachePaths = @("cache", "cache2\entries", "cache2", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage", "sessionstore-backups", "jumpListCache", "thumbnails")
             ForEach ($cachePath in $possibleCachePaths) {
-                Remove-Dir "$AppDataPath\$cachePath"
+                Remove-SubFile "$AppDataPath\$cachePath"
             }
 			$possibleCacheFiles = @("places.sqlite-wal", "places.sqlite", "places.sqlite-shm", "prefs.js","SiteSecurityServiceState.txt", "formhistory.sqlite", "formhistory.sqlite-journal", "favicons.sqlite-wal", "cookies.sqlite")
             ForEach ($cacheFile in $possibleCacheFiles) {
@@ -248,7 +242,7 @@ Function Clear-ChromeCacheFiles
 {
     param([string]$user = $env:USERNAME)
     Clear-ChromeTemplate "C:\users\$user\AppData\Local\Google\Chrome\User Data\Default" "Browser Google Chrome"
-    Remove-Dir "C:\users\$user\AppData\Local\Google\Chrome\User Data\SwReporter\"
+    Remove-SubFile "C:\users\$user\AppData\Local\Google\Chrome\User Data\SwReporter\"
 }
 
 #------------------------------------------------------------------#
@@ -259,7 +253,7 @@ Function Clear-EdgeCacheFiles
     param([string]$user = $env:USERNAME)
     Clear-ChromeTemplate "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default" "Browser Microsoft Edge"
     Remove-File "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\*.TMP"
-    Remove-Dir "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\CacheStorage"
+    Remove-SubFile "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\CacheStorage"
 }
 
 #------------------------------------------------------------------#
@@ -304,7 +298,7 @@ Function Clear-AcrobatCacheFiles
         {
             ForEach ($cachePath in $possibleCachePaths)
             {
-                Remove-Dir "$DirName\$AcrobatAppDataPath\$cachePath"
+                Remove-SubFile "$DirName\$AcrobatAppDataPath\$cachePath"
             }
         }
     }
@@ -322,7 +316,7 @@ Function Clear-TeamsCacheFiles
         $teamsAppDataPath = "C:\users\$user\AppData\Roaming\Microsoft\Teams"
         ForEach ($cachePath in $possibleCachePaths)
         {
-            Remove-Dir "$teamsAppDataPath\$cachePath"
+            Remove-SubFile "$teamsAppDataPath\$cachePath"
         }
     }
 }
@@ -355,7 +349,7 @@ Function Clear-NotepadPP
     {
 		$possibleCachePaths = @("backup")
 		ForEach ($cachePath in $possibleCachePaths) {
-			Remove-Dir "$path\$cachePath"
+			Remove-SubFile "$path\$cachePath"
 		}
 		$possibleCacheFiles = @("config.xml", "session.xml")
 		ForEach ($cacheFile in $possibleCacheFiles) {
@@ -431,7 +425,7 @@ Function Araid-install-package {
     }
 
 	Write-Log "Start winget install, with default softwares using: $FilePath"
-	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -Wait
+	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -Wait -NoNewWindow
 	
     Remove-Item -Path $FilePath -Force
 
@@ -699,19 +693,19 @@ Function Araid-CleanAndRestart {
 
 	# Clear Downloads, Pictures, Music, Videos folders
 	$DownloadsFolder = "$env:USERPROFILE\Downloads"
-	Remove-Dir "$DownloadsFolder"
+	Remove-SubFile "$DownloadsFolder"
 
 	$PicturesFolder = "$env:USERPROFILE\Pictures"
-	Remove-Dir "$PicturesFolder"
+	Remove-SubFile "$PicturesFolder"
 
 	$MusicFolder = "$env:USERPROFILE\Music"
-	Remove-Dir "$MusicFolder"
+	Remove-SubFile "$MusicFolder"
 
 	$VideosFolder = "$env:USERPROFILE\Videos"
-	Remove-Dir "$VideosFolder"
+	Remove-SubFile "$VideosFolder"
 
 	$DocumentsFolder = "$env:USERPROFILE\Documents"
-	Remove-Dir "$DocumentsFolder"
+	Remove-SubFile "$DocumentsFolder"
 
 	# Set wallpaper based on manufacturer
 	$Manufacturers = @(
