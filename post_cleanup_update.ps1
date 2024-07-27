@@ -853,7 +853,7 @@ Function Araid-CleanAndRestart {
 		Write-Log "$($_.InstanceId) has been removed"
 	}
 	
-	# Clear-DuplicateOldDrivers
+	Clear-DuplicateOldDrivers
 	
 	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait
 	Write-Log "cleanmgr /d $env:homedrive"
