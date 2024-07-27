@@ -458,8 +458,21 @@ function Clear-DuplicateOldDrivers {
 		$Name = $($item.Name).Trim()
 		#Write-Host "deleting $Name" -ForegroundColor Yellow
 		Write-Log "pnputil.exe /remove-device  $Name" -ForegroundColor Yellow
-		Invoke-Expression -Command "pnputil.exe /remove-device $Name"
+		Start-Process pnputil.exe -ArgumentList "/remove-device $Name" -Wait -NoNewWindow
 	}
+
+	foreach ($item in $ToDel) {
+		$Name = $($item.Name).Trim()
+		# Write-Host "deleting $Name" -ForegroundColor Yellow
+		
+		try {
+			Start-Process pnputil.exe -ArgumentList "/remove-device $Name" -Wait -NoNewWindow
+			Write-Log "pnputil.exe /remove-device $Name" -ForegroundColor Yellow
+		} catch {
+			Write-Log "Failed to remove-device {$Name}'. Error: $_"
+		}
+	}
+
 
 }
 
@@ -875,7 +888,7 @@ Function Araid-CleanAndRestart {
 	
 	Clear-DuplicateOldDrivers
 	
-	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait
+	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
 	Write-Log "cleanmgr /d $env:homedrive"
 	
 	# Wait for user confirmation
