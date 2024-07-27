@@ -365,6 +365,7 @@ Function Clear-MicrosoftOfficeCacheFiles
 Function Clear-NotepadPP
 {
     param([string]$user = $env:USERNAME)
+	
     if ((Test-Path "C:\users\$user\AppData\Roaming\Notepad++"))
     {
 		$possibleCachePaths = @("backup")
@@ -376,9 +377,11 @@ Function Clear-NotepadPP
 			Remove-File "$path\$cacheFile"
 		}
     }
+	
 }
 
 function Clear-DuplicateOldDrivers {
+	
 	#https://github.com/maxbakhub/winposh/blob/main/WindowsDesktopManagement/RemoveOldDuplicateDrivers.ps1
 	$dismOut = dism /online /get-drivers
 	$Lines = $dismOut | select -Skip 10
@@ -476,6 +479,7 @@ function Clear-DuplicateOldDrivers {
 }
 
 function Get-WingetVersion {
+	
     try {
         # Run winget --version and remove any leading/trailing whitespace and the "v" prefix
         $wingetVersionString = (winget --version) -replace '^v', '' -replace '\s+', ''
@@ -486,9 +490,11 @@ function Get-WingetVersion {
         Write-Error "Failed to parse winget version. $_"
         return [version]"0.0" # Return a default value if there's an error
     }
+	
 }
 
 function Check-Winget {
+	
     if ($global:wingetChecked) {
         return
     }
@@ -517,9 +523,6 @@ function Check-Winget {
         Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
         Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
     }
-    
-    # Upgrade winget
-    Write-Output "y" | winget upgrade
     
     $global:wingetChecked = $true
 }
