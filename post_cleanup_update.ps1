@@ -559,26 +559,28 @@ function Araid-upgrade-package {
 	
 	Check-winget
 	
-    $commands = @(
-        "winget pin add --id Discord.Discord --blocking",
-        "winget pin add --id Microsoft.DevHome --blocking",
-        "winget pin add --id Cisco.Webex --blocking",
-		"winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
-        
+	$pinapps = @(
+        "Discord.Discord",
+        "Microsoft.DevHome",
+        "Cisco.Webex"
     )
-    
-    $commandString = $commands -join " && "
-    
-	Write-Log "Blocking upgrade for Discord.Discord"
-	Write-Log "Blocking upgrade for Microsoft.DevHome"
-	Write-Log "Blocking upgrade for Cisco.Webex"
-	Write-Log "Start winget upgrade softwares."
-    try {
-        Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait -NoNewWindow
+	
+	ForEach ($pinapp in $pinapps){
+		try {
+			Start-Process cmd.exe -ArgumentList "winget pin add --id $pinapp --blocking" -Wait -NoNewWindow
+			Write-Host "$pinapp blocked from upgrade through winget"
+		} catch {
+			Write-Host "An error occurred: $_"
+		}
+	}
+	
+	try {
+        Start-Process cmd.exe -ArgumentList "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
         Write-Host "Upgrade done."
     } catch {
         Write-Host "An error occurred: $_"
     }
+	
 }
 
 function Araid-LegacyRepair {
