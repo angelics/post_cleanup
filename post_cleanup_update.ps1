@@ -863,27 +863,19 @@ Function Araid-CleanAndRestart {
 }
 
 function kill-necessary {
-	
-	$commands = @(
-        "taskkill /f /im explorer.exe",
-        "taskkill /f /im skype.exe",
-        "taskkill /f /im discord.exe",
-        "taskkill /f /im firefox.exe",
-        "taskkill /f /im chrome.exe",
-        "taskkill /f /im msedge.exe"
-	)
+    $tasks = @("explorer.exe", "skype.exe", "discord.exe", "firefox.exe", "chrome.exe", "msedge.exe")
 
-	$commandString = $commands -join " && "
-    
-	Write-Log "Task killed: explorer.exe"
-	Write-Log "Task killed: skype.exe"
-	Write-Log "Task killed: discord.exe"
-	Write-Log "Task killed: firefox.exe"
-	Write-Log "Task killed: chrome.exe"
-	Write-Log "Task killed: msedge.exe"
-	
-    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait
-	
+    foreach ($task in $tasks) {
+        $command = "taskkill /f /im $task"
+
+        try {
+            Start-Process cmd.exe -ArgumentList "/c $command" -NoNewWindow -Wait
+            Write-Log "Task killed: $task"
+        }
+        catch {
+            Write-Log "Error occurred while trying to kill task {$task}: $_"
+        }
+    }
 }
 
 Clear-Host
