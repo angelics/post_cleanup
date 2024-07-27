@@ -138,10 +138,17 @@ Function Clear-WindowsUserCacheFiles
 Function Clear-MicrosoftDefenderAntivirus
 {
 	#$env:ProgramData = C:\ProgramData
-	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\CacheManager"
-	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Quick"
-	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Resource"
-	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Service"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\CacheManager"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Quick"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\Resource"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Service"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Store"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\System"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpenginedb.db"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Support"
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Definition Updates\{GUID}"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.bin"
+    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
 }
 
 function Clear-WindowsUpdateCache {
@@ -568,9 +575,9 @@ function Araid-upgrade-package {
 	ForEach ($pinapp in $pinapps){
 		try {
 			Start-Process cmd.exe -ArgumentList "/c winget pin add --id $pinapp --blocking --accept-source-agreements" -Wait -NoNewWindow
-			Write-Host "$pinapp blocked from upgrade through winget"
+			Write-Log "$pinapp blocked from upgrade through winget"
 		} catch {
-			Write-Host "An error occurred: $_"
+			Write-Log "An error occurred: $_"
 		}
 	}
 	
@@ -578,7 +585,7 @@ function Araid-upgrade-package {
         Start-Process cmd.exe -ArgumentList "/c winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
         Write-Host "Upgrade done."
     } catch {
-        Write-Host "An error occurred: $_"
+        Write-Log "An error occurred: $_"
     }
 	
 }
@@ -881,6 +888,9 @@ Function Araid-CleanAndRestart {
 	}
 	
 	Clear-DuplicateOldDrivers
+	
+	dism /online /cleanup-image /StartComponentCleanup /ResetBase
+	Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
 	
 	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
 	Write-Log "cleanmgr /d $env:homedrive"
