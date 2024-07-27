@@ -536,6 +536,8 @@ function Check-Winget {
 
 Function Araid-install-package {
 	
+	Clear-Host
+	
 	Write-Host "install started."
 	Write-Host "Please wait..."
 	
@@ -560,6 +562,8 @@ Function Araid-install-package {
 }
 
 function Araid-upgrade-package {
+	
+	Clear-Host
 	
 	Write-Host "upgrade started."
 	Write-Host "Please wait..."
@@ -591,6 +595,8 @@ function Araid-upgrade-package {
 }
 
 function Araid-LegacyRepair {
+	
+	Clear-Host
 	
 	Write-Host "Legacy repair started. Recommend to run at least 2 times."
 	Write-Host "Please wait..."
@@ -677,7 +683,9 @@ function Remove-RegistryPropertyAndLog {
 
 
 Function Araid-CleanAndRestart {
-		
+
+	Clear-Host
+
 	Write-Host "Cleaning started."
 	Write-Host "Please wait..."
 
