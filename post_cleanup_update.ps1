@@ -454,13 +454,6 @@ function Clear-DuplicateOldDrivers {
 	$ToDel | ft
 	# Removing old driver versions
 	# Uncomment the Invoke-Expression to automatically remove old versions of device drivers 
-	foreach ( $item in $ToDel ) {
-		$Name = $($item.Name).Trim()
-		#Write-Host "deleting $Name" -ForegroundColor Yellow
-		Write-Log "pnputil.exe /remove-device  $Name" -ForegroundColor Yellow
-		Start-Process pnputil.exe -ArgumentList "/remove-device $Name" -Wait -NoNewWindow
-	}
-
 	foreach ($item in $ToDel) {
 		$Name = $($item.Name).Trim()
 		# Write-Host "deleting $Name" -ForegroundColor Yellow
