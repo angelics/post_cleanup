@@ -113,8 +113,8 @@ Function Clear-UserCacheFiles
 #------------------------------------------------------------------#
 #- Clear-WindowsUserCacheFiles                                     #
 #------------------------------------------------------------------#
-Function Clear-WindowsUserCacheFiles
-{
+Function Clear-WindowsUserCacheFiles {
+	
 	#$env:appdata = C:\Users\LocalAdmin\AppData\Roaming
 	#$env:LOCALAPPDATA = C:\Users\LocalAdmin\AppData\Local
 	#$env:USERPROFILE = C:\Users\LocalAdmin
@@ -138,11 +138,19 @@ Function Clear-WindowsUserCacheFiles
     Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\WER"
     Remove-SubFile "$env:LOCALAPPDATA\Temp"
 	Remove-SubFile "$env:LOCALAPPDATA\CrashDumps"
+	Remove-SubFile "$env:LOCALAPPDATA\D3DSCache" # DirectX Shader Cache
+	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" # Thumbnails
+	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState" # Clear Notepad history
+	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\" # Clear Microsoft Edge cache
 	Remove-SubFile "$env:APPDATA\Microsoft\Windows\Recent"
     Remove-SubFile "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
     Remove-SubFile "$env:APPDATA\Microsoft\Windows\CustomDestinations"
-	Remove-SubFile "$env:LOCALAPPDATA\D3DSCache" # DirectX Shader Cache
-	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" # Thumbnails
+	Remove-SubFile "$env:USERPROFILE\Downloads"
+	Remove-SubFile "$env:USERPROFILE\Pictures"
+	Remove-SubFile "$env:USERPROFILE\Music"
+	Remove-SubFile "$env:USERPROFILE\Videos"
+	Remove-SubFile "$env:USERPROFILE\Documents"
+	
 }
 
 Function Clear-MicrosoftDefenderAntivirus
@@ -799,9 +807,6 @@ Function Araid-CleanAndRestart {
 	$value = 2
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	Write-Log "Changed debugging: Kernel memory dump"
-	
-	Clear-UserCacheFiles
-	Clear-GlobalWindowsCache
 
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
@@ -865,30 +870,6 @@ Function Araid-CleanAndRestart {
 	$propertyName = 'StartupTNotiSkype for Desktop'
 	Remove-RegistryPropertyAndLog -RegistryPath $registryPath -PropertyName $propertyName
 
-	# Clear Notepad history
-	Remove-Item -Path "$env:localappdata\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState\*" -Recurse -Force -ErrorAction SilentlyContinue
-	Write-Log "Clear Notepad history"
-
-	# Clear Microsoft Edge cache
-	Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\*" -Recurse -Force -ErrorAction SilentlyContinue
-	Write-Log "Clear Microsoft Edge cache"
-
-	# Clear Downloads, Pictures, Music, Videos folders
-	$DownloadsFolder = "$env:USERPROFILE\Downloads"
-	Remove-SubFile "$DownloadsFolder"
-
-	$PicturesFolder = "$env:USERPROFILE\Pictures"
-	Remove-SubFile "$PicturesFolder"
-
-	$MusicFolder = "$env:USERPROFILE\Music"
-	Remove-SubFile "$MusicFolder"
-
-	$VideosFolder = "$env:USERPROFILE\Videos"
-	Remove-SubFile "$VideosFolder"
-
-	$DocumentsFolder = "$env:USERPROFILE\Documents"
-	Remove-SubFile "$DocumentsFolder"
-
 	# Set wallpaper based on manufacturer
 	$Manufacturers = @(
 		"$env:systemroot\Web\Wallpaper\backgroundDefault.jpg",
@@ -922,7 +903,6 @@ Function Araid-CleanAndRestart {
 		}
 	}
 
-
 	# List all hidden devices
 	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
 	
@@ -940,6 +920,8 @@ Function Araid-CleanAndRestart {
 		}
 	}
 	
+	Clear-UserCacheFiles
+	Clear-GlobalWindowsCache
 	Clear-DuplicateOldDrivers
 	
 	Write-Host "Further cleaning up windows update..."
@@ -951,6 +933,7 @@ Function Araid-CleanAndRestart {
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
+	
 }
 
 function kill-necessary {
