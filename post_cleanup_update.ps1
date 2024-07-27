@@ -917,26 +917,6 @@ Function Araid-CleanAndRestart {
 		}
 	}
 	
-	# Define the Instance IDs of devices to always try to remove
-	$alwaysRemoveDevices = @(
-		'usb\vid_046d&pid_c092',
-		'monitor\vscb639'
-	)
-
-	# Always try to remove the specified devices
-	ForEach ($id in $alwaysRemoveDevices) {
-		try {
-			# Run the command to remove the device
-			Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device `"$id`"" -NoNewWindow -Wait
-			# Log the successful removal
-			Write-Log "$id has been removed"
-		}
-		catch {
-			# Log the error if the command fails
-			Write-Log "Failed to remove $id: $_"
-		}
-	}
-	
 	Clear-DuplicateOldDrivers
 	
 	Write-Host "Further cleaning up windows update..."
