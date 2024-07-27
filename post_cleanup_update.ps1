@@ -863,7 +863,7 @@ Function Araid-CleanAndRestart {
 }
 
 function kill-necessary {
-    $tasks = @("explorer.exe", "skype.exe", "discord.exe", "firefox.exe", "chrome.exe", "msedge.exe")
+    $tasks = @("explorer.exe", "skype.exe", "discord.exe", "firefox.exe", "chrome.exe", "msedge.exe", "steam.exe")
 
     foreach ($task in $tasks) {
         $command = "taskkill /f /im $task"
