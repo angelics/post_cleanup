@@ -523,7 +523,7 @@ function Check-Winget {
         Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
         Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
     }
-    
+		
     $global:wingetChecked = $true
 }
 
@@ -567,7 +567,7 @@ function Araid-upgrade-package {
 	
 	ForEach ($pinapp in $pinapps){
 		try {
-			Start-Process cmd.exe -ArgumentList "/c winget pin add --id $pinapp --blocking" -Wait -NoNewWindow
+			Start-Process cmd.exe -ArgumentList "/c winget pin add --id $pinapp --blocking --accept-source-agreements" -Wait -NoNewWindow
 			Write-Host "$pinapp blocked from upgrade through winget"
 		} catch {
 			Write-Host "An error occurred: $_"
