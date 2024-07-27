@@ -60,13 +60,17 @@ Function Clear-GlobalWindowsCache
 	#$env:homedrive = C:\
 	#$env:ProgramData = C:\ProgramData
     Remove-SubFile "$env:systemroot\Temp"
+    Remove-SubFile "$env:systemroot\CbsTemp"
+    Remove-SubFile "$env:systemroot\SystemTemp"
     Remove-SubFile "$env:homedrive\Temp"
     Remove-SubFile "$env:homedrive\tmp"
     Remove-SubFile "$env:systemroot\Prefetch"
+    Remove-SubFile "$env:systemroot\ServiceProfiles\NetworkService\Appdata\Local\Microsoft\DeliveryOptimization\Logs\*.etl"
     Remove-File "$env:homedrive\Intel"
     Remove-File "$env:homedrive\AMD"
     Remove-File "$env:homedrive\NVIDIA"
 	Remove-SubFile "$env:ProgramData\USOShared\Logs" # Delivery Optimization Files
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows\WER\Temp" # Delivery Optimization Files
 #1: Temporary Internet Files
 #2: Cookies
 #4: History
@@ -124,6 +128,10 @@ Function Clear-WindowsUserCacheFiles
     Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IECompatUaCache"
     Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IEDownloadHistory"
     Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\INetCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosoftWindows.Client.WebExperience_*\AC\INetCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\AC\INetCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosoftWindows.Client.CBS_*\AC\INetCache"
+    Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.Windows.StartMenuExperienceHost_*\AC\INetCache"
 	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\INetCookies"
     Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Temporary Internet Files"
     Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\WebCache"
