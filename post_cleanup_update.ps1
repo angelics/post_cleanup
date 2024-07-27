@@ -177,15 +177,27 @@ function Clear-WindowsSearch {
 	#$env:WINDIR = C:\Windows
 	
     try {
-		Write-Host "Stop Windows Search service"
-        Stop-Service -Name WSearch -Force
+        # Check if the Windows Search service is running
+        $service = Get-Service -Name WSearch -ErrorAction Stop
+        
+        if ($service.Status -eq 'Running') {
+            Write-Host "Stop Windows Search service"
+            Stop-Service -Name WSearch -Force
+        } else {
+            Write-Host "Windows Search service is not running"
+        }
 
         # Delete Windows Search cache files
-        Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosotWindows.Client.CBS_*\LocalState\Search"
-		Write-Log "Delete Windows Search cache files"
-		
-		Write-Host "Start Windows Search service"
-        Start-Service -Name WSearch
+        Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search" -Recurse -Force -ErrorAction Stop
+        Write-Log "Deleted Windows Search cache files"
+
+        # Start Windows Search service if it was stopped
+        if ($service.Status -eq 'Running') {
+            Write-Host "Start Windows Search service"
+            Start-Service -Name WSearch
+        } else {
+            Write-Host "Windows Search service was not running"
+        }
     } catch {
         Write-Log "Failed to clean Windows Search cache: $_"
     }
