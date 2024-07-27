@@ -902,7 +902,7 @@ Function Araid-CleanAndRestart {
 
 	# List all hidden devices
 	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
-
+	
 	# Loop through all hidden devices to remove them
 	ForEach($dev in $unknown_devs){
 		try {
@@ -914,6 +914,26 @@ Function Araid-CleanAndRestart {
 		catch {
 			# Log the error if the command fails
 			Write-Log "Failed to remove $($dev.InstanceId): $_"
+		}
+	}
+	
+	# Define the Instance IDs of devices to always try to remove
+	$alwaysRemoveDevices = @(
+		'usb\vid_046d&pid_c092',
+		'monitor\vscb639'
+	)
+
+	# Always try to remove the specified devices
+	ForEach ($id in $alwaysRemoveDevices) {
+		try {
+			# Run the command to remove the device
+			Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device `"$id`"" -NoNewWindow -Wait
+			# Log the successful removal
+			Write-Log "$id has been removed"
+		}
+		catch {
+			# Log the error if the command fails
+			Write-Log "Failed to remove $id: $_"
 		}
 	}
 	
@@ -931,6 +951,7 @@ Function Araid-CleanAndRestart {
 }
 
 function kill-necessary {
+	
     $tasks = @("explorer.exe", "skype.exe", "discord.exe", "firefox.exe", "chrome.exe", "msedge.exe", "steam.exe")
 
     foreach ($task in $tasks) {
@@ -944,6 +965,7 @@ function kill-necessary {
             Write-Log "Error occurred while trying to kill task {$task}: $_"
         }
     }
+	
 }
 
 Clear-Host
