@@ -99,6 +99,7 @@ Function Clear-UserCacheFiles
         Clear-WindowsUserCacheFiles
         Clear-MicrosoftDefenderAntivirus
         Clear-WindowsUpdateCache
+		Clear-WindowsSearch
         Clear-NotepadPP $localUser
     }
 }
@@ -159,6 +160,25 @@ function Clear-WindowsUpdateCache {
         Start-Service -Name wuauserv
     } catch {
         Write-Log "Failed to clean Windows Update cache: $_"
+    }
+}
+
+function Clear-WindowsSearch {
+	
+	#$env:WINDIR = C:\Windows
+	
+    try {
+        # Stop Windows Search service
+        Stop-Service -Name WSearch -Force
+
+        # Delete Windows Search cache files
+        Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosotWindows.Client.CBS_*\LocalState\Search"
+		Write-Log "Delete Windows Search cache files"
+		
+        # Start Windows Update service
+        Start-Service -Name WSearch
+    } catch {
+        Write-Log "Failed to clean Windows Search cache: $_"
     }
 }
 
