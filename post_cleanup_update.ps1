@@ -567,7 +567,7 @@ function Araid-upgrade-package {
 	
 	ForEach ($pinapp in $pinapps){
 		try {
-			Start-Process cmd.exe -ArgumentList "winget pin add --id $pinapp --blocking" -Wait -NoNewWindow
+			Start-Process cmd.exe -ArgumentList "/c winget pin add --id $pinapp --blocking" -Wait -NoNewWindow
 			Write-Host "$pinapp blocked from upgrade through winget"
 		} catch {
 			Write-Host "An error occurred: $_"
@@ -575,7 +575,7 @@ function Araid-upgrade-package {
 	}
 	
 	try {
-        Start-Process cmd.exe -ArgumentList "winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
+        Start-Process cmd.exe -ArgumentList "/c winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
         Write-Host "Upgrade done."
     } catch {
         Write-Host "An error occurred: $_"
