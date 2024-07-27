@@ -156,14 +156,14 @@ function Clear-WindowsUpdateCache {
 	#$env:WINDIR = C:\Windows
 	
     try {
-        # Stop Windows Update service
+		Write-Host "Stop Windows Update service"
         Stop-Service -Name wuauserv -Force
 
         # Delete Windows Update cache files
         Remove-SubFile "$env:WINDIR\SoftwareDistribution\Download"
 		Write-Log "Delete Windows Update cache files"
 		
-        # Start Windows Update service
+		Write-Host "Start Windows Update service"
         Start-Service -Name wuauserv
     } catch {
         Write-Log "Failed to clean Windows Update cache: $_"
@@ -175,14 +175,14 @@ function Clear-WindowsSearch {
 	#$env:WINDIR = C:\Windows
 	
     try {
-        # Stop Windows Search service
+		Write-Host "Stop Windows Search service"
         Stop-Service -Name WSearch -Force
 
         # Delete Windows Search cache files
         Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosotWindows.Client.CBS_*\LocalState\Search"
 		Write-Log "Delete Windows Search cache files"
 		
-        # Start Windows Update service
+		Write-Host "Start Windows Search service"
         Start-Service -Name WSearch
     } catch {
         Write-Log "Failed to clean Windows Search cache: $_"
@@ -889,7 +889,8 @@ Function Araid-CleanAndRestart {
 	
 	Clear-DuplicateOldDrivers
 	
-	dism /online /cleanup-image /StartComponentCleanup /ResetBase
+	Write-Host "Further cleaning up windows update..."
+	Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
 	Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
 	
 	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
