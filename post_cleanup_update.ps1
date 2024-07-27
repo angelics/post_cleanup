@@ -592,7 +592,7 @@ function Araid-upgrade-package {
 
 function Araid-LegacyRepair {
 	
-	Write-Host "Legacy repair started."
+	Write-Host "Legacy repair started. Recommend to run at least 2 times."
 	Write-Host "Please wait..."
 	
 	# Clear console history
@@ -600,9 +600,12 @@ function Araid-LegacyRepair {
 	Write-Log "Clear console history"
 	Remove-File "$ConsoleHistory"
 	
+	$sfcscanlog = "$env:systemroot\Logs\araid\scanlog.txt"
+	Remove-File "$sfcscanlog"
+	
     $commands = @(
         "Dism /Online /Cleanup-Image /RestoreHealth",
-        "sfc /scannow",
+        "sfc /scannow /offlogfile:$sfcscanlog",
         "echo y | chkdsk $env:homedrive /f"
         
     )
@@ -610,9 +613,28 @@ function Araid-LegacyRepair {
     $commandString = $commands -join " && "
     
 	Write-Log "Repair started"
-    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait
+    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait -NoNewWindow
+	
+	$sourceFile = "$env:systemroot\Logs\araid\scanlog.txt"
+	$destinationFile = "$env:systemroot\Logs\araid\SFCResults-Unrepairables.Log"
+	$pattern = "\[SR\] Cannot repair member file"
+
+	if (Test-Path -Path $sourceFile) {
+		try {
+			Select-String -Path $sourceFile -Pattern $pattern | Out-File -FilePath $destinationFile
+			if ((Get-Content -Path $destinationFile).Length -gt 0) {
+                Write-Host "There are unrepairable files detected by SFC."
+            } else {
+                Write-Host "No unrepairable files detected by SFC."
+            }
+		}
+		catch {
+			Write-Log "An error occurred: $_"
+		}
+	}
 	
 	Write-Host "Repair done."
+	
 }
 
 function Remove-RegistryPathAndLog {
