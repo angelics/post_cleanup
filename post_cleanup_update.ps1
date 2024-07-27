@@ -644,7 +644,8 @@ function Araid-LegacyRepair {
     Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait -NoNewWindow
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
-	$destinationFile = "$env:systemroot\Logs\araid\SFCResults-Unrepairables.Log"
+	$timestamp = Get-Date -Format "yyMMddHHmmss"
+	$destinationFile = "$env:systemroot\Logs\araid\$timestamp_SFCResults-Unrepairables.log"
 	$pattern = "\[SR\] Cannot repair member file"
 
 	if (Test-Path -Path $sourceFile) {
