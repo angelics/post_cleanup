@@ -512,9 +512,9 @@ function Check-Winget {
         Move-Item -Path ".\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination . -Force
         Remove-Item -Path ".\Windows10_PreinstallKit.zip" -Force
         Remove-Item -Path ".\Windows10_PreinstallKit" -Recurse -Force
-        Add-AppxPackage -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx"
+        Add-AppxPackage -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -ForceApplicationShutdown
         Remove-Item -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Force
-        Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx"
+        Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
         Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
     }
     
