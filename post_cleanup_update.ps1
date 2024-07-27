@@ -96,12 +96,14 @@ Function Clear-UserCacheFiles
         Clear-MicrosoftOfficeCacheFiles $localUser
         Clear-SteamCacheFiles $localUser
         Clear-TeamsCacheFiles $localUser
-        Clear-WindowsUserCacheFiles
-        Clear-MicrosoftDefenderAntivirus
-        Clear-WindowsUpdateCache
-		Clear-WindowsSearch
         Clear-NotepadPP $localUser
     }
+	
+	Clear-WindowsUserCacheFiles
+	Clear-MicrosoftDefenderAntivirus
+	Clear-WindowsUpdateCache
+	Clear-WindowsSearch
+	
 }
 
 #------------------------------------------------------------------#
