@@ -633,7 +633,7 @@ function Araid-LegacyRepair {
 	
     $commands = @(
         "Dism /Online /Cleanup-Image /RestoreHealth",
-        "sfc /scannow /offlogfile:$sfcscanlog",
+        "sfc /scannow",
         "echo y | chkdsk $env:homedrive /f"
         
     )
@@ -643,7 +643,7 @@ function Araid-LegacyRepair {
 	Write-Log "Repair started"
     Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait -NoNewWindow
 	
-	$sourceFile = "$env:systemroot\Logs\araid\scanlog.txt"
+	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
 	$destinationFile = "$env:systemroot\Logs\araid\SFCResults-Unrepairables.Log"
 	$pattern = "\[SR\] Cannot repair member file"
 
