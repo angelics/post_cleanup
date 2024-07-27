@@ -857,32 +857,22 @@ Function Araid-CleanAndRestart {
 		}
 	}
 
+
 	# List all hidden devices
 	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
 
-	# Initialize an array to hold the command arguments
-	$commands = @()
-
-	# Loop through all hidden devices to create the arguments
+	# Loop through all hidden devices to remove them
 	ForEach($dev in $unknown_devs){
-		$arguments = "pnputil.exe /remove-device `"$($dev.InstanceId)`""
-		$commands += $arguments
-	}
-	
-	# Check if there are commands to run
-	if ($commands.Count -eq 0) {
-		exit
-	}
-
-	# Combine commands into a single string
-	$commandsString = $commands -join ' && '
-
-	# Start a single process to run the combined command
-	Start-Process -FilePath "cmd.exe" -ArgumentList "-Command $commandsString" -Wait
-
-	# Log the action
-	$unknown_devs | ForEach-Object {
-		Write-Log "$($_.InstanceId) has been removed"
+		try {
+			# Run the command to remove the device
+			Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device `"$($dev.InstanceId)`"" -NoNewWindow -Wait
+			# Log the successful removal
+			Write-Log "$($dev.InstanceId) has been removed"
+		}
+		catch {
+			# Log the error if the command fails
+			Write-Log "Failed to remove $($dev.InstanceId): $_"
+		}
 	}
 	
 	Clear-DuplicateOldDrivers
