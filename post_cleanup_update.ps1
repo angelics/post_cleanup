@@ -376,6 +376,9 @@ Function Clear-TeamsCacheFiles
             Remove-SubFile "$teamsAppDataPath\$cachePath"
         }
     }
+	
+	Remove-SubFile "C:\users\$user\AppData\Local\Packages\MSTeams_*\LocalCache\Microsoft\MSTeams"
+		
 }
 
 #------------------------------------------------------------------#
