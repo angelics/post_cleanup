@@ -924,9 +924,9 @@ Function Araid-CleanAndRestart {
 	Clear-GlobalWindowsCache
 	Clear-DuplicateOldDrivers
 	
-	Write-Host "Further cleaning up windows update..."
-	Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
-	Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
+	#Write-Host "Further cleaning up windows update..."
+	#Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
+	#Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
 	
 	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
 	Write-Log "cleanmgr /d $env:homedrive"
