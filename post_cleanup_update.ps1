@@ -660,7 +660,7 @@ function Araid-LegacyRepair {
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
 	$timestamp = Get-Date -Format "yyMMddHHmmss"
-	$destinationFile = "$env:systemroot\Logs\araid\$timestamp_SFCResults-Unrepairables.log"
+	$destinationFile = "$env:systemroot\Logs\araid\{$timestamp}_SFCResults-Unrepairables.log"
 	$pattern = "\[SR\] Cannot repair member file"
 
 	if (Test-Path -Path $sourceFile) {
@@ -677,7 +677,7 @@ function Araid-LegacyRepair {
 		}
 	}
 	
-	Write-Host "Repair done."
+	Read-Host -Prompt "Repair done. Press Enter to restart the computer..."
 	
 }
 
