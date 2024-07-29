@@ -918,7 +918,7 @@ Function Araid-CleanAndRestart {
 		ForEach($dev in $unknown_devs){
 			try {
 				# Run the command to remove the device
-				Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device `"$($dev.InstanceId)`"" -NoNewWindow -Wait
+				Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device $($dev.InstanceId)" -NoNewWindow -Wait
 				# Log the successful removal
 				Write-Log "$($dev.InstanceId) has been removed"
 			}
