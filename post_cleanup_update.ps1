@@ -496,25 +496,29 @@ function Clear-DuplicateOldDrivers {
 	# Write-Host "List of driver version  to remove" -ForegroundColor Red
 	$ToDel | ft
 	# Removing old driver versions
-	# Uncomment the Invoke-Expression to automatically remove old versions of device drivers 
-	foreach ($item in $ToDel) {
-		$Name = $($item.Name).Trim()
-		$FileName = $($item.FileName).Trim()
-		$Vendor = $($item.Vendor).Trim()
-		$Date = $($item.Date).Trim()
-		$ClassName = $($item.ClassName).Trim()
-		$Version = $($item.Version).Trim()
-		$Entr = $($item.Entr).Trim()
-		
-		# Write-Host "deleting $Name" -ForegroundColor Yellow
-		
-		try {
-			Start-Process pnputil.exe -ArgumentList "/remove-device $Name" -Wait -NoNewWindow
-			Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
-		} catch {
-			Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr={$Entr}. Error: $_"
+	# Uncomment the Invoke-Expression to automatically remove old versions of device drivers
+	if ($ToDel) {
+		foreach ($item in $ToDel) {
+			$Name = $($item.Name).Trim()
+			$FileName = $($item.FileName).Trim()
+			$Vendor = $($item.Vendor).Trim()
+			$Date = $($item.Date).Trim()
+			$ClassName = $($item.ClassName).Trim()
+			$Version = $($item.Version).Trim()
+			$Entr = $($item.Entr).Trim()
+			
+			# Write-Host "deleting $Name" -ForegroundColor Yellow
+			
+			try {
+				Start-Process pnputil.exe -ArgumentList "/remove-device $Name" -Wait -NoNewWindow
+				Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
+			} catch {
+				Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr={$Entr}. Error: $_"
+			}
 		}
-	}
+	} else {
+        Write-Host "No old or duplicate drivers to remove."
+    }
 
 }
 
