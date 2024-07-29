@@ -908,19 +908,23 @@ Function Araid-CleanAndRestart {
 
 	# List all hidden devices
 	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
-	
-	# Loop through all hidden devices to remove them
-	ForEach($dev in $unknown_devs){
-		try {
-			# Run the command to remove the device
-			Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device `"$($dev.InstanceId)`"" -NoNewWindow -Wait
-			# Log the successful removal
-			Write-Log "$($dev.InstanceId) has been removed"
+
+	if ($unknown_devs) {
+		# Loop through all hidden devices to remove them
+		ForEach($dev in $unknown_devs){
+			try {
+				# Run the command to remove the device
+				Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device `"$($dev.InstanceId)`"" -NoNewWindow -Wait
+				# Log the successful removal
+				Write-Log "$($dev.InstanceId) has been removed"
+			}
+			catch {
+				# Log the error if the command fails
+				Write-Log "Failed to remove $($dev.InstanceId): $_"
+			}
 		}
-		catch {
-			# Log the error if the command fails
-			Write-Log "Failed to remove $($dev.InstanceId): $_"
-		}
+	} else {
+		Write-Host "No Unknown devices to remove."
 	}
 	
 	Clear-UserCacheFiles
