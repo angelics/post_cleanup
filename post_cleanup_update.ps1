@@ -510,7 +510,7 @@ function Clear-DuplicateOldDrivers {
 			# Write-Host "deleting $Name" -ForegroundColor Yellow
 			
 			try {
-				Start-Process pnputil.exe -ArgumentList "/remove-device $Name" -Wait -NoNewWindow
+				Start-Process pnputil.exe -ArgumentList "/delete-driver $Name" -Wait -NoNewWindow
 				Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
 			} catch {
 				Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr={$Entr}. Error: $_"
