@@ -939,8 +939,8 @@ Function Araid-CleanAndRestart {
 	#Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
 	#Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
 	
-	Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
-	Write-Log "cleanmgr /d $env:homedrive"
+	#Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
+	#Write-Log "cleanmgr /d $env:homedrive"
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
