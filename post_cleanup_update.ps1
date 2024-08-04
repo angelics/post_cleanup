@@ -173,19 +173,39 @@ function Clear-WindowsUpdateCache {
 	
 	#$env:WINDIR = C:\Windows
 	
-    try {
-		Write-Host "Stop Windows Update service"
-        Stop-Service -Name wuauserv -Force
+    param (
+        [int]$RetryCount = 3,
+        [int]$RetryDelaySeconds = 5
+    )
 
-        # Delete Windows Update cache files
-        Remove-SubFile "$env:WINDIR\SoftwareDistribution\Download"
-		Write-Log "Delete Windows Update cache files"
-		
-		Write-Host "Start Windows Update service"
+    try {
+        Write-Host "Stopping Windows Update service..."
+
+        for ($i = 0; $i -lt $RetryCount; $i++) {
+            try {
+                Stop-Service -Name wuauserv -Force -ErrorAction Stop
+                Write-Host "Windows Update service stopped successfully."
+                break
+            } catch {
+                Write-Host "Attempt $($i+1) to stop Windows Update service failed. Retrying in $RetryDelaySeconds seconds..."
+                Start-Sleep -Seconds $RetryDelaySeconds
+            }
+        }
+
+        if ((Get-Service -Name wuauserv).Status -eq 'Running') {
+            throw "Failed to stop Windows Update service after $RetryCount attempts."
+        }
+
+		Remove-SubFile "$env:WINDIR\SoftwareDistribution\Download"
+		Write-Log "Windows Update cache files deleted."
+
+        Write-Host "Starting Windows Update service..."
         Start-Service -Name wuauserv
+        Write-Host "Windows Update service started successfully."
     } catch {
-        Write-Log "Failed to clean Windows Update cache: $_"
+        Write-Host "Failed to clean Windows Update cache: $_"
     }
+	
 }
 
 function Clear-WindowsSearch {
