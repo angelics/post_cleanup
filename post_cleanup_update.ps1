@@ -998,6 +998,7 @@ function Clear-Taskbar {
         if ($shortcutsToKeep -notcontains $shortcut.Name) {
             try {
                 Remove-File "$shortcut.FullName"
+                Write-Log "Remove-File $shortcut.FullName"
                 Write-Log "Removed: $($shortcut.Name)"
             }
             catch {
