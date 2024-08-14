@@ -613,6 +613,8 @@ Function Araid-install-package {
 
 	Write-Log "Start winget install, with default softwares using: $FilePath"
 	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -Wait -NoNewWindow
+	Write-Log "Start winget install whatsapp, using id: 9NKSQGP7F2NH"
+	Start-Process cmd.exe -ArgumentList '/c winget install --id "9NKSQGP7F2NH" --exact --source msstore --accept-source-agreements --silent --disable-interactivity --accept-package-agreements' -Wait -NoNewWindow
 	
     Remove-Item -Path $FilePath -Force
 
