@@ -633,6 +633,7 @@ function Araid-upgrade-package {
 	$pinapps = @(
         "Discord.Discord",
         "Microsoft.DevHome",
+        "Microsoft.Edge",
         "Cisco.Webex"
     )
 	
