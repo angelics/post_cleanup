@@ -1237,7 +1237,7 @@ $label5.Size = New-Object System.Drawing.Size(190, 20)
 
 # Create button for Move Folder
 $button5 = New-Object System.Windows.Forms.Button
-$button5.Text = "Legacy Repair"
+$button5.Text = "Move Folder to D:\"
 $button5.Location = New-Object System.Drawing.Point(50, 270)
 $button5.Size = New-Object System.Drawing.Size(190, 30)
 $button5.Add_Click({
