@@ -613,12 +613,19 @@ Function Araid-install-package {
 
 	Write-Log "Start winget install, with default softwares using: $FilePath"
 	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -Wait -NoNewWindow
-	Write-Log "Start winget install whatsapp, using id: 9NKSQGP7F2NH"
-	Start-Process cmd.exe -ArgumentList '/c winget install --id "9NKSQGP7F2NH" --exact --source msstore --accept-source-agreements --silent --disable-interactivity --accept-package-agreements --no-upgrade' -Wait -NoNewWindow
+    # Check if WhatsApp is installed
+    $whatsapp = winget list --id "9NKSQGP7F2NH" --exact --accept-source-agreements | Out-String
+    if ($whatsapp -match "9NKSQGP7F2NH") {
+        Write-Log "WhatsApp is already installed, skipping installation."
+    } else {
+        Write-Log "WhatsApp not found, installing..."
+        Start-Process cmd.exe -ArgumentList '/c winget install --id "9NKSQGP7F2NH" --exact --source msstore --accept-source-agreements --silent --disable-interactivity --accept-package-agreements --no-upgrade' -Wait -NoNewWindow
+        Write-Log "WhatsApp installation complete."
+    }
 	
     Remove-Item -Path $FilePath -Force
 
-	Write-Host "install done."
+	Write-Host "Install done."
 }
 
 function Araid-upgrade-package {
