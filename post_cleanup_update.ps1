@@ -1141,7 +1141,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 320)
+$form.Size = New-Object System.Drawing.Size(480, 350)
 $form.TopMost = $true
 
 # Remove minimize, maximize, close buttons and disable form resize
