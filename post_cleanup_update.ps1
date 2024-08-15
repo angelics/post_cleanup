@@ -184,7 +184,7 @@ function Stop-Services {
 
             if ($serviceStatus -eq 'Running') {
                 Write-Host "Attempting to stop $service... (Attempt $($attempt + 1))"
-                Stop-Service -Name $service -Force -Verbose
+                Stop-Service -Name $service -Force
 
                 # Check if the service is stopped after the attempt
                 if ((Get-Service -Name $service).Status -eq 'Stopped') {
@@ -232,7 +232,7 @@ function Start-Services {
             while ($attempt -lt $RetryCount) {
                 try {
                     Write-Host "Attempting to start $service... (Attempt $($attempt + 1))"
-                    Start-Service -Name $service -Verbose
+                    Start-Service -Name $service
 
                     # Check if the service is running after the attempt
                     if ((Get-Service -Name $service).Status -eq 'Running') {
@@ -1141,7 +1141,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 350)
+$form.Size = New-Object System.Drawing.Size(480, 370)
 $form.TopMost = $true
 
 # Remove minimize, maximize, close buttons and disable form resize
