@@ -169,42 +169,104 @@ Function Clear-MicrosoftDefenderAntivirus
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
 }
 
-function Clear-WindowsUpdateCache {
+function Stop-Services {
 	
-	#$env:WINDIR = C:\Windows
+	param (
+		[Parameter(Mandatory = $true)][string]$service,
+		[int]$RetryCount = 3,
+		[int]$RetryDelaySeconds = 5
+	)
+
+    $attempt = 0
+    while ($attempt -lt $RetryCount) {
+        try {
+            $serviceStatus = (Get-Service -Name $service).Status
+
+            if ($serviceStatus -eq 'Running') {
+                Write-Host "Attempting to stop $service... (Attempt $($attempt + 1))"
+                Stop-Service -Name $service -Force -Verbose
+
+                # Check if the service is stopped after the attempt
+                if ((Get-Service -Name $service).Status -eq 'Stopped') {
+                    Write-Log "$service stopped successfully."
+                    return  # Exit the function if successful
+                }
+            } else {
+                Write-Host "$service is already stopped."
+                return  # Exit the function if service is not running
+            }
+
+        } catch {
+            Write-Host "Attempt $($attempt + 1) to stop $service failed. Retrying in $RetryDelaySeconds seconds..."
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+
+        $attempt++
+    }
+
+    # After retry attempts, throw an error if the service is still running
+    if ((Get-Service -Name $service).Status -eq 'Running') {
+        throw "Failed to stop $service after $RetryCount attempts."
+    }
+}
+
+function Start-Services {
 	
-    param (
-        [int]$RetryCount = 3,
-        [int]$RetryDelaySeconds = 5
-    )
+	param (
+		[Parameter(Mandatory = $true)][string]$service,
+		[int]$RetryCount = 3,
+		[int]$RetryDelaySeconds = 5
+	)
 
     try {
-        Write-Host "Stopping Windows Update service..."
+        # Check if the service's start type is 'Disabled'
+        $serviceController = Get-WmiObject -Class Win32_Service -Filter "Name='$service'"
+        if ($serviceController.StartMode -eq 'Disabled') {
+            Write-Host "$service is disabled and will not be started."
+            return
+        }
 
-        for ($i = 0; $i -lt $RetryCount; $i++) {
-            try {
-                Stop-Service -Name wuauserv -Force -ErrorAction Stop
-                Write-Host "Windows Update service stopped successfully."
-                break
-            } catch {
-                Write-Host "Attempt $($i+1) to stop Windows Update service failed. Retrying in $RetryDelaySeconds seconds..."
-                Start-Sleep -Seconds $RetryDelaySeconds
+        # Check the current status of the service
+        if ((Get-Service -Name $service).Status -eq 'Stopped') {
+            $attempt = 0
+            while ($attempt -lt $RetryCount) {
+                try {
+                    Write-Host "Attempting to start $service... (Attempt $($attempt + 1))"
+                    Start-Service -Name $service -Verbose
+
+                    # Check if the service is running after the attempt
+                    if ((Get-Service -Name $service).Status -eq 'Running') {
+                        Write-Host "$service started successfully."
+                        return  # Exit the function if successful
+                    }
+                } catch {
+                    Write-Host "Attempt $($attempt + 1) to start $service failed. Retrying in $RetryDelaySeconds seconds..."
+                    Start-Sleep -Seconds $RetryDelaySeconds
+                }
+
+                $attempt++
             }
+
+            # After retry attempts, throw an error if the service is still stopped
+            if ((Get-Service -Name $service).Status -eq 'Stopped') {
+                throw "Failed to start $service after $RetryCount attempts."
+            }
+        } else {
+            Write-Host "$service is already running."
         }
-
-        if ((Get-Service -Name wuauserv).Status -eq 'Running') {
-            throw "Failed to stop Windows Update service after $RetryCount attempts."
-        }
-
-		Remove-SubFile "$env:WINDIR\SoftwareDistribution\Download"
-		Write-Log "Windows Update cache files deleted."
-
-        Write-Host "Starting Windows Update service..."
-        Start-Service -Name wuauserv
-        Write-Host "Windows Update service started successfully."
     } catch {
-        Write-Host "Failed to clean Windows Update cache: $_"
+        Write-Host "Failed to start service: $_"
     }
+}
+
+function Clear-WindowsUpdateCache {
+	
+    Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+
+	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
+	Write-Log "Windows Update cache files deleted."
+
+	Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
 	
 }
 
@@ -212,31 +274,14 @@ function Clear-WindowsSearch {
 	
 	#$env:WINDIR = C:\Windows
 	
-    try {
-        # Check if the Windows Search service is running
-        $service = Get-Service -Name WSearch -ErrorAction Stop
-        
-        if ($service.Status -eq 'Running') {
-            Write-Host "Stop Windows Search service"
-            Stop-Service -Name WSearch -Force
-        } else {
-            Write-Host "Windows Search service is not running"
-        }
+    Stop-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
 
-        # Delete Windows Search cache files
-        Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search" -Recurse -Force -ErrorAction Stop
-        Write-Log "Deleted Windows Search cache files"
+	# Delete Windows Search cache files
+	Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search" -Recurse -Force -ErrorAction Stop
+	Write-Log "Deleted Windows Search cache files"
 
-        # Start Windows Search service if it was stopped
-        if ($service.Status -eq 'Running') {
-            Write-Host "Start Windows Search service"
-            Start-Service -Name WSearch
-        } else {
-            Write-Host "Windows Search service was not running"
-        }
-    } catch {
-        Write-Log "Failed to clean Windows Search cache: $_"
-    }
+	Start-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
+	
 }
 
 Function Remove-SubFile
@@ -1022,6 +1067,45 @@ function Clear-Taskbar {
     }
 }
 
+function Move-Folder {
+	
+	#$env:systemroot = C:\Windows
+	#$env:homedrive = C:\
+	$folderToMove = @(
+		"$env:homedrive\MSOCache",
+		"$env:systemroot\SoftwareDistribution",
+		"$env:systemroot\installer"
+	)
+	
+	Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+	Stop-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
+	Stop-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
+
+	$destinationRoot = "D:\"
+	
+	foreach ($folder in $folderToMove) {
+		if (Test-Path -Path $folder) {
+			$folderName = [System.IO.Path]::GetFileName($folder.TrimEnd('\'))
+			$destination = Join-Path -Path $destinationRoot -ChildPath $folderName
+			
+			# Ensure the destination directory exists
+			if (-not (Test-Path -Path $destination)) {
+				New-Item -Path $destination -ItemType Directory
+			}
+
+			# Move the folder
+			Move-Item -Path $folder -Destination $destination -Force -Verbose
+			Start-Process cmd.exe -ArgumentList "/c MKLINK /J $folder $destination" -NoNewWindow -Wait
+		}
+	}
+	
+	Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+	Start-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
+	Start-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
+	
+	
+}
+
 Clear-Host
 kill-necessary
 
@@ -1057,7 +1141,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 300)
+$form.Size = New-Object System.Drawing.Size(480, 320)
 $form.TopMost = $true
 
 # Remove minimize, maximize, close buttons and disable form resize
@@ -1128,13 +1212,13 @@ $button3.Add_Click({
     }
 })
 
-# Create label for Clean and Restart
+# Create label for Legacy Repair
 $label4 = New-Object System.Windows.Forms.Label
 $label4.Text = "Legacy Repair and reboot"
 $label4.Location = New-Object System.Drawing.Point(270, 220)
 $label4.Size = New-Object System.Drawing.Size(190, 20)
 
-# Create button for Clean and Restart
+# Create button for Legacy Repair
 $button4 = New-Object System.Windows.Forms.Button
 $button4.Text = "Legacy Repair"
 $button4.Location = New-Object System.Drawing.Point(50, 210)
@@ -1143,6 +1227,21 @@ $button4.Add_Click({
 	$allowClose = $true
 	$Form.Close()
 	Araid-LegacyRepair
+})
+
+# Create label for Move Folder
+$label5 = New-Object System.Windows.Forms.Label
+$label5.Text = "Move Folder to D:\"
+$label5.Location = New-Object System.Drawing.Point(270, 280)
+$label5.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for Move Folder
+$button5 = New-Object System.Windows.Forms.Button
+$button5.Text = "Legacy Repair"
+$button5.Location = New-Object System.Drawing.Point(50, 270)
+$button5.Size = New-Object System.Drawing.Size(190, 30)
+$button5.Add_Click({
+	Move-Folder
 })
 
 # Add buttons to the form
@@ -1154,6 +1253,8 @@ $form.Controls.Add($label3)
 $form.Controls.Add($button3)
 $form.Controls.Add($label4)
 $form.Controls.Add($button4)
+$form.Controls.Add($label5)
+$form.Controls.Add($button5)
 
 # Show the form
 $form.ShowDialog()
