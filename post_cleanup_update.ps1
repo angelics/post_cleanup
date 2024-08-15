@@ -968,6 +968,10 @@ Function Araid-CleanAndRestart {
 	Clear-GlobalWindowsCache
 	Clear-DuplicateOldDrivers
 	
+	Write-Host "Clear all event logs"
+	Get-EventLog -LogName * | ForEach { Clear-EventLog $_.Log }
+	Write-Log "Clear all event logs"
+	
 	#Write-Host "Further cleaning up windows update..."
 	#Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
 	#Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
