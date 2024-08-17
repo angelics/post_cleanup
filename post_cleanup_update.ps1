@@ -1075,7 +1075,7 @@ function Move-Folder {
 	$folderToMove = @(
 		"$env:homedrive\MSOCache",
 		"$env:systemroot\SoftwareDistribution",
-		"$env:systemroot\installer"
+		"$env:systemroot\Installer"
 	)
 	
 	Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
@@ -1089,11 +1089,6 @@ function Move-Folder {
 			$folderName = [System.IO.Path]::GetFileName($folder.TrimEnd('\'))
 			$destination = Join-Path -Path $destinationRoot -ChildPath $folderName
 			
-			# Ensure the destination directory exists
-			if (-not (Test-Path -Path $destination)) {
-				New-Item -Path $destination -ItemType Directory
-			}
-
 			# Move the folder
 			Move-Item -Path $folder -Destination $destination -Force -Verbose
 			Start-Process cmd.exe -ArgumentList "/c MKLINK /J $folder $destination" -NoNewWindow -Wait
@@ -1104,6 +1099,7 @@ function Move-Folder {
 	Start-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
 	Start-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
 	
+	Write-Host "Move folder done."
 	
 }
 
