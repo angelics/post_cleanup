@@ -722,8 +722,10 @@ function Araid-LegacyRepair {
 	$sfcscanlog = "$env:systemroot\Logs\araid\scanlog.txt"
 	Remove-File "$sfcscanlog"
 	  
-	Write-Log "Repair started"
+	Write-Host "Repair started"
+	Write-Log "Started Dism Restore Health"
     Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
+	Write-Log "Started System File Checker"
     Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
@@ -736,6 +738,7 @@ function Araid-LegacyRepair {
 			Select-String -Path $sourceFile -Pattern $pattern | Out-File -FilePath $destinationFile
 			if ((Get-Content -Path $destinationFile).Length -gt 0) {
                 Write-Host "There are unrepairable files detected by SFC."
+                Write-Log "There are unrepairable files detected by SFC."
             } else {
                 Write-Host "No unrepairable files detected by SFC."
             }
@@ -745,7 +748,10 @@ function Araid-LegacyRepair {
 		}
 	}
 	
-	Start-Process powershell -ArgumentList "-Command Get-AppXPackage -AllUsers | ForEach-Object {Add-AppxPackage -DisableDevelopmentMode -Register '$($_.InstallLocation)\AppXManifest.xml'}" -Wait
+	Write-Log "re-register all AppX packages for all users"
+	Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
+	Clear-Host
+	Write-Log "Chkdsk on reboot"
     Start-Process cmd.exe -ArgumentList "/c echo y | chkdsk $env:homedrive /f" -Wait -NoNewWindow
 	
 	Read-Host -Prompt "Repair done. Press Enter to restart the computer..."
