@@ -721,18 +721,10 @@ function Araid-LegacyRepair {
 	
 	$sfcscanlog = "$env:systemroot\Logs\araid\scanlog.txt"
 	Remove-File "$sfcscanlog"
-	
-    $commands = @(
-        "Dism /Online /Cleanup-Image /RestoreHealth",
-        "sfc /scannow",
-        "echo y | chkdsk $env:homedrive /f"
-        
-    )
-    
-    $commandString = $commands -join " && "
-    
+	  
 	Write-Log "Repair started"
-    Start-Process cmd.exe -ArgumentList "/c $commandString" -Wait -NoNewWindow
+    Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
+    Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
 	$timestamp = Get-Date -Format "yyMMddHHmmss"
@@ -752,6 +744,9 @@ function Araid-LegacyRepair {
 			Write-Log "An error occurred: $_"
 		}
 	}
+	
+	Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
+    Start-Process cmd.exe -ArgumentList "/c echo y | chkdsk $env:homedrive /f" -Wait -NoNewWindow
 	
 	Read-Host -Prompt "Repair done. Press Enter to restart the computer..."
 	
