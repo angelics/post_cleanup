@@ -745,7 +745,7 @@ function Araid-LegacyRepair {
 		}
 	}
 	
-	Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
+	Start-Process powershell -ArgumentList "-Command Get-AppXPackage -AllUsers | ForEach-Object {Add-AppxPackage -DisableDevelopmentMode -Register '$($_.InstallLocation)\AppXManifest.xml'}" -Wait
     Start-Process cmd.exe -ArgumentList "/c echo y | chkdsk $env:homedrive /f" -Wait -NoNewWindow
 	
 	Read-Host -Prompt "Repair done. Press Enter to restart the computer..."
