@@ -1120,44 +1120,70 @@ function Move-Pagefile {
 }
 
 function Move-Folder {
-	
-	#$env:systemroot = C:\Windows
-	#$env:homedrive = C:\
-	$folderToMove = @(
-		"$env:homedrive\MSOCache",
-		"$env:systemroot\SoftwareDistribution",
-		"$env:systemroot\Installer"
-	)
-	
-	Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
-	Stop-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
-	Stop-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
 
-	$destinationRoot = "D:\"
-	
-	foreach ($folder in $folderToMove) {
-		if (Test-Path -Path $folder) {
-			$folderName = [System.IO.Path]::GetFileName($folder.TrimEnd('\'))
-			$destination = Join-Path -Path $destinationRoot -ChildPath $folderName
-			
-			# Move the folder
-			Move-Item -Path $folder -Destination $destination -Force -Verbose
-			Start-Process cmd.exe -ArgumentList "/c MKLINK /J $folder $destination" -NoNewWindow -Wait
-		}
-	}
-	
-	if (Move-Pagefile -NewPagefileDrive "$destinationRoot") {
-		Write-Host "Pagefile moved successfully. Please reboot the system."
-	} else {
-		Write-Host "Pagefile move failed. Check the error message."
-	}
-	
-	Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
-	Start-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
-	Start-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
-	
-	Write-Host "Move folder done."
-	
+    # Function to stop required services
+    function Stop-RequiredServices {
+        Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+        Stop-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
+        Stop-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
+    }
+
+    # Function to start required services
+    function Start-RequiredServices {
+        Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+        Start-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
+        Start-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
+    }
+
+    # Begin the move process
+    Stop-RequiredServices
+
+    $foldersToMove = @(
+        @{ Source = "$env:homedrive\MSOCache"; DestinationRoot = "D:\homedrive" },
+        @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:systemroot\Temp"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:systemroot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs" },
+        @{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows" }
+    )
+
+    foreach ($folder in $foldersToMove) {
+        $source = $folder.Source
+        $destinationRoot = $folder.DestinationRoot
+        
+        if (Test-Path -Path $source) {
+            try {
+                $folderName = [System.IO.Path]::GetFileName($source.TrimEnd('\'))
+                $destination = Join-Path -Path $destinationRoot -ChildPath $folderName
+                
+                # Move the folder
+                if (-not (Test-Path -Path $destination)) {
+                    Move-Item -Path $source -Destination $destination -Force -Verbose
+                    Write-Log "Moved $source to $destination"
+                }
+
+                # Create junction
+                Start-Process cmd.exe -ArgumentList "/c MKLINK /J $source $destination" -NoNewWindow -Wait
+                Write-Log "MKLINK /J $source $destination"
+
+            } catch {
+                Write-Log "Error moving $source: $_"
+            }
+        }
+    }
+
+    # Handle the pagefile
+    if (Move-Pagefile -NewPagefileDrive "D:\") {
+        Write-Host "Pagefile moved successfully. Please reboot the system."
+    } else {
+        Write-Host "Pagefile move failed. Check the error message."
+    }
+
+    Start-RequiredServices
+
+    Write-Host "Move folder done."
 }
 
 Clear-Host
