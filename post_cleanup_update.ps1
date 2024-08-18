@@ -623,6 +623,7 @@ function Check-Winget {
     # Install or upgrade winget if necessary
     if ($wingetVersion -lt $minVersion) {
         # Install winget
+		# https://github.com/microsoft/winget-cli/issues/1861#issuecomment-1634057674
         IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile ".\Windows10_PreinstallKit.zip"
         Expand-Archive -Path ".\Windows10_PreinstallKit.zip" -DestinationPath ".\Windows10_PreinstallKit" -Force
         Move-Item -Path ".\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination . -Force
@@ -1068,6 +1069,56 @@ function Clear-Taskbar {
     }
 }
 
+function Move-Pagefile {
+    param (
+        [string]$NewPagefileDrive = "D:",
+        [int]$InitialSize = $null,
+        [int]$MaxSize = $null
+    )
+
+    # Path to the registry key for pagefile configuration
+    $pagefileRegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+
+    try {
+        # Check if the registry key exists
+        if (!(Test-Path $pagefileRegPath)) {
+            Write-Warning "Registry key $pagefileRegPath not found."
+            return $false
+        }
+
+        # Get current pagefile configuration
+        $currentConfig = Get-ItemProperty -Path $pagefileRegPath -Name "PagingFiles"
+        $currentPagingFiles = $currentConfig.PagingFiles
+
+        # Determine initial and maximum sizes
+        if ($null -eq $InitialSize) {
+            $initialSize = $currentPagingFiles.Split(' ')[1]
+        }
+        if ($null -eq $MaxSize) {
+            $maxSize = $currentPagingFiles.Split(' ')[2]
+        }
+
+        # Set the new pagefile location with specified sizes
+        $newPagefile = "$NewPagefileDrive\pagefile.sys"
+        $newPagingFileConfig = "$newPagefile $initialSize $maxSize"
+
+        # Disable the pagefile on the system drive (C:) and add new drive config
+        $updatedPagingFiles = @(
+            "$newPagingFileConfig",
+            "$env:homedrive\pagefile.sys 0 0" # Disable pagefile on C:
+        )
+
+        # Update the registry key with the new settings
+        Set-ItemProperty -Path $pagefileRegPath -Name "PagingFiles" -Value $updatedPagingFiles
+
+        Write-Log "Pagefile has been moved to $NewPagefileDrive. A system reboot is required."
+        return $true
+    } catch [System.Exception] {
+        Write-Log "An error occurred while moving the pagefile: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 function Move-Folder {
 	
 	#$env:systemroot = C:\Windows
@@ -1093,6 +1144,12 @@ function Move-Folder {
 			Move-Item -Path $folder -Destination $destination -Force -Verbose
 			Start-Process cmd.exe -ArgumentList "/c MKLINK /J $folder $destination" -NoNewWindow -Wait
 		}
+	}
+	
+	if (Move-Pagefile -NewPagefileDrive "$destinationRoot") {
+		Write-Host "Pagefile moved successfully. Please reboot the system."
+	} else {
+		Write-Host "Pagefile move failed. Check the error message."
 	}
 	
 	Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
