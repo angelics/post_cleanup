@@ -1126,6 +1126,7 @@ function Move-Folder {
         Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
         Stop-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
         Stop-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
+        Stop-Services -service "EventLog" -RetryCount 3 -RetryDelaySeconds 5
     }
 
     # Function to start required services
@@ -1133,6 +1134,7 @@ function Move-Folder {
         Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
         Start-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
         Start-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
+        Start-Services -service "EventLog" -RetryCount 3 -RetryDelaySeconds 5
     }
 
     # Begin the move process
@@ -1143,7 +1145,7 @@ function Move-Folder {
         @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:systemroot\Temp"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:systemroot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
-        @{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" },
+        # @{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }, write-log folder
         @{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs" },
         @{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows" }
