@@ -726,8 +726,21 @@ function Araid-LegacyRepair {
 	Write-Host "Repair started"
 	Write-Log "Started Dism Restore Health"
     Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
+
+	# Start the job to monitor the CBS log
+	$job = Start-Job -ScriptBlock {
+		Get-Content -Path "$env:systemroot\Logs\CBS\CBS.log" -Tail 10 -Wait
+	}
+
+	# Start a new PowerShell console to display the job output
+	Start-Process powershell.exe -ArgumentList "-NoExit", "-Command `"while ($true) { Receive-Job -Id $job.Id; Start-Sleep -Seconds 5 }`""
+
 	Write-Log "Started System File Checker"
-    Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
+	Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
+
+	Stop-Job -Id $job.Id
+
+	Remove-Job -Id $job.Id
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
 	$timestamp = Get-Date -Format "yyMMddHHmmss"
