@@ -1169,7 +1169,7 @@ function Move-Folder {
                 Write-Log "MKLINK /J $source $destination"
 
             } catch {
-                Write-Log "Error moving $source: $_"
+                Write-Log "Error moving ${source}: $_"
             }
         }
     }
