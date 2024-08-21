@@ -715,6 +715,13 @@ function Araid-LegacyRepair {
 	Write-Host "Legacy repair started. Recommend to run at least 2 times."
 	Write-Host "Please wait..."
 	
+	# Disable Automatic Restart
+	$registryPath="HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl"
+	$propertyName="AutoReboot"
+	$value = 0
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	Write-Log "Disable Automatic Restart"
+	
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
@@ -725,7 +732,7 @@ function Araid-LegacyRepair {
 	  
 	Write-Host "Repair started"
 	Write-Log "Started Dism Restore Health"
-    Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
+	Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
 
 	# Start the job to monitor the CBS log
 	$job = Start-Job -ScriptBlock {
@@ -733,13 +740,12 @@ function Araid-LegacyRepair {
 	}
 
 	# Start a new PowerShell console to display the job output
-	Start-Process powershell.exe -ArgumentList "-NoExit", "-Command `"while ($true) { Receive-Job -Id $job.Id; Start-Sleep -Seconds 5 }`""
+	Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "while (\$true) { Receive-Job -Id $job.Id; Start-Sleep -Seconds 5 }"
 
 	Write-Log "Started System File Checker"
 	Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
 
 	Stop-Job -Id $job.Id
-
 	Remove-Job -Id $job.Id
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
