@@ -62,6 +62,7 @@ Function Clear-GlobalWindowsCache
     Remove-SubFile "$env:systemroot\Temp"
     Remove-SubFile "$env:systemroot\CbsTemp"
     Remove-SubFile "$env:systemroot\SystemTemp"
+    Remove-SubFile "$env:systemroot\Minidump"
     Remove-SubFile "$env:homedrive\Temp"
     Remove-SubFile "$env:homedrive\tmp"
     Remove-SubFile "$env:systemroot\Prefetch"
