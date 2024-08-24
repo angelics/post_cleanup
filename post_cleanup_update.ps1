@@ -1140,42 +1140,28 @@ function Move-Pagefile {
 
 function Move-Folder {
 
-    # Function to stop required services
-    function Stop-RequiredServices {
-        Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
-        Stop-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
-        Stop-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
-        Stop-Services -service "EventLog" -RetryCount 3 -RetryDelaySeconds 5
-    }
-
-    # Function to start required services
-    function Start-RequiredServices {
-        Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
-        Start-Services -service "TrustedInstaller" -RetryCount 3 -RetryDelaySeconds 5
-        Start-Services -service "msiserver" -RetryCount 3 -RetryDelaySeconds 5
-        Start-Services -service "EventLog" -RetryCount 3 -RetryDelaySeconds 5
-    }
-
-    # Begin the move process
-    Stop-RequiredServices
-
     $foldersToMove = @(
         @{ Source = "$env:homedrive\MSOCache"; DestinationRoot = "D:\homedrive" },
-        @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot"; Service = "wuauserv" },
         @{ Source = "$env:systemroot\Temp"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:systemroot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
-        # @{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }, write-log folder
-        @{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs" },
-        @{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot" },
-        @{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows" }
+        @{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs"; Service = "EventLog" },
+        @{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot"; Service = "TrustedInstaller" },
+        @{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows"; Service = "EventLog" }
     )
 
     foreach ($folder in $foldersToMove) {
         $source = $folder.Source
         $destinationRoot = $folder.DestinationRoot
-        
+		$Service = $folder.Service
+		
         if (Test-Path -Path $source) {
             try {
+				# Stop the associated service if needed
+				if (-not [string]::IsNullOrEmpty($Service)) {
+					Stop-Services -service $Service -RetryCount 3 -RetryDelaySeconds 5
+				}
+				
                 $folderName = [System.IO.Path]::GetFileName($source.TrimEnd('\'))
                 $destination = Join-Path -Path $destinationRoot -ChildPath $folderName
                 
@@ -1188,7 +1174,11 @@ function Move-Folder {
                 # Create junction
                 Start-Process cmd.exe -ArgumentList "/c MKLINK /J $source $destination" -NoNewWindow -Wait
                 Write-Log "MKLINK /J $source $destination"
-
+				
+				# Start the associated service if it was stopped
+				if (-not [string]::IsNullOrEmpty($Service)) {
+					Start-Services -service $Service -RetryCount 3 -RetryDelaySeconds 5
+				}		
             } catch {
                 Write-Log "Error moving ${source}: $_"
             }
@@ -1201,8 +1191,6 @@ function Move-Folder {
     #} else {
     #    Write-Host "Pagefile move failed. Check the error message."
     #}
-
-    Start-RequiredServices
 
     Write-Host "Move folder done."
 }
