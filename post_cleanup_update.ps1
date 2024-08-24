@@ -1196,11 +1196,11 @@ function Move-Folder {
     }
 
     # Handle the pagefile
-    if (Move-Pagefile -NewPagefileDrive "D:\") {
-        Write-Host "Pagefile moved successfully. Please reboot the system."
-    } else {
-        Write-Host "Pagefile move failed. Check the error message."
-    }
+    #if (Move-Pagefile -NewPagefileDrive "D:\") {
+    #    Write-Host "Pagefile moved successfully. Please reboot the system."
+    #} else {
+    #    Write-Host "Pagefile move failed. Check the error message."
+    #}
 
     Start-RequiredServices
 
