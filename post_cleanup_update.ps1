@@ -171,12 +171,12 @@ Function Clear-MicrosoftDefenderAntivirus
 }
 
 function Stop-Services {
-	
-	param (
-		[Parameter(Mandatory = $true)][string]$service,
-		[int]$RetryCount = 3,
-		[int]$RetryDelaySeconds = 5
-	)
+    
+    param (
+        [Parameter(Mandatory = $true)][string]$service,
+        [int]$RetryCount = 3,
+        [int]$RetryDelaySeconds = 5
+    )
 
     $attempt = 0
     while ($attempt -lt $RetryCount) {
@@ -185,16 +185,28 @@ function Stop-Services {
 
             if ($serviceStatus -eq 'Running') {
                 Write-Host "Attempting to stop $service... (Attempt $($attempt + 1))"
+
+                # Get and stop dependent services first
+                $dependentServices = Get-Service -Name $service | Select-Object -ExpandProperty DependentServices
+                foreach ($dep in $dependentServices) {
+                    if ($dep.Status -eq 'Running') {
+                        Write-Host "Stopping dependent service: $($dep.Name)"
+                        Stop-Service -Name $dep.Name -Force
+                        # Optionally, you can add a loop to retry stopping the dependent service as well.
+                    }
+                }
+
+                # Stop the main service
                 Stop-Service -Name $service -Force
 
                 # Check if the service is stopped after the attempt
                 if ((Get-Service -Name $service).Status -eq 'Stopped') {
-                    Write-Log "$service stopped successfully."
+                    Write-Host "$service stopped successfully."
                     return  # Exit the function if successful
                 }
             } else {
                 Write-Host "$service is already stopped."
-                return  # Exit the function if service is not running
+                return  # Exit the function if the service is not running
             }
 
         } catch {
@@ -212,12 +224,12 @@ function Stop-Services {
 }
 
 function Start-Services {
-	
-	param (
-		[Parameter(Mandatory = $true)][string]$service,
-		[int]$RetryCount = 3,
-		[int]$RetryDelaySeconds = 5
-	)
+
+    param (
+        [Parameter(Mandatory = $true)][string]$service,
+        [int]$RetryCount = 3,
+        [int]$RetryDelaySeconds = 5
+    )
 
     try {
         # Check if the service's start type is 'Disabled'
@@ -225,6 +237,16 @@ function Start-Services {
         if ($serviceController.StartMode -eq 'Disabled') {
             Write-Host "$service is disabled and will not be started."
             return
+        }
+
+        # Check and start dependent services first
+        $dependentServices = Get-Service -Name $service | Select-Object -ExpandProperty DependentServices
+        foreach ($dep in $dependentServices) {
+            if ($dep.Status -eq 'Stopped') {
+                Write-Host "Starting dependent service: $($dep.Name)"
+                Start-Service -Name $dep.Name
+                # Optionally, you can add retry logic here if necessary.
+            }
         }
 
         # Check the current status of the service
