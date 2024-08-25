@@ -1144,14 +1144,8 @@ function Move-Pagefile {
         $newPagefile = "$NewPagefileDrive\pagefile.sys"
         $newPagingFileConfig = "$newPagefile $initialSize $maxSize"
 
-        # Disable the pagefile on the system drive (C:) and add new drive config
-        $updatedPagingFiles = @(
-            "$newPagingFileConfig",
-            "$env:homedrive\pagefile.sys 0 0" # Disable pagefile on C:
-        )
-
         # Update the registry key with the new settings
-        Set-ItemProperty -Path $pagefileRegPath -Name "PagingFiles" -Value $updatedPagingFiles
+        Set-ItemProperty -Path $pagefileRegPath -Name "PagingFiles" -Value $newPagingFileConfig
 
         Write-Log "Pagefile has been moved to $NewPagefileDrive. A system reboot is required."
         return $true
@@ -1209,11 +1203,11 @@ function Move-Folder {
     }
 
     # Handle the pagefile
-    #if (Move-Pagefile -NewPagefileDrive "D:\") {
-    #    Write-Host "Pagefile moved successfully. Please reboot the system."
-    #} else {
-    #    Write-Host "Pagefile move failed. Check the error message."
-    #}
+    if (Move-Pagefile -NewPagefileDrive "D:\") {
+        Write-Host "Pagefile moved successfully. Please reboot the system."
+    } else {
+        Write-Host "Pagefile move failed. Check the error message."
+    }
 
     Write-Host "Move folder done."
 }
