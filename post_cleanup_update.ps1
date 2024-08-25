@@ -289,7 +289,7 @@ function Clear-WindowsUpdateCache {
 	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
 	Write-Log "Windows Update cache files deleted."
 
-	Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+	#Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
 	
 }
 
@@ -303,7 +303,7 @@ function Clear-WindowsSearch {
 	Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search" -Recurse -Force -ErrorAction Stop
 	Write-Log "Deleted Windows Search cache files"
 
-	Start-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
+	#Start-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
 	
 }
 
@@ -1197,9 +1197,9 @@ function Move-Folder {
                 Write-Log "MKLINK /J $source $destination"
 				
 				# Start the associated service if it was stopped
-				if (-not [string]::IsNullOrEmpty($Service)) {
-					Start-Services -service $Service -RetryCount 3 -RetryDelaySeconds 5
-				}		
+				#if (-not [string]::IsNullOrEmpty($Service)) {
+				#	Start-Services -service $Service -RetryCount 3 -RetryDelaySeconds 5
+				#}		
             } catch {
                 Write-Log "Error moving ${source}: $_"
             }
