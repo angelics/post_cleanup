@@ -223,7 +223,8 @@ function Stop-Services {
     }
 }
 
-function Start-Services {
+# not disabling services, start-services is not needed
+<# function Start-Services {
 
     param (
         [Parameter(Mandatory = $true)][string]$service,
@@ -280,7 +281,7 @@ function Start-Services {
     } catch {
         Write-Host "Failed to start service: $_"
     }
-}
+} #>
 
 function Clear-WindowsUpdateCache {
 	
