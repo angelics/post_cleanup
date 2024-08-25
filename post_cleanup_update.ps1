@@ -1112,6 +1112,7 @@ function Clear-Taskbar {
 }
 
 function Move-Pagefile {
+	
     param (
         [string]$NewPagefileDrive = "D:",
         [int]$InitialSize = $null,
@@ -1153,6 +1154,7 @@ function Move-Pagefile {
         Write-Log "An error occurred while moving the pagefile: $($_.Exception.Message)"
         return $false
     }
+	
 }
 
 function Move-Folder {
@@ -1162,10 +1164,11 @@ function Move-Folder {
         @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot"; Service = "wuauserv" },
         @{ Source = "$env:systemroot\Temp"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:systemroot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
+		@{ Source = "$env:ProgramData\Package Cache"; DestinationRoot = "D:\ProgramData\Package Cache"},
 		@{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot"; Service = "TrustedInstaller" }
         #@{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs"; Service = "EventLog" }, #always fail
         #@{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows"; Service = "EventLog" } #always fail
-		#@{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }, write-log folder
+		#@{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }, #write-log folder
     )
 
     foreach ($folder in $foldersToMove) {
