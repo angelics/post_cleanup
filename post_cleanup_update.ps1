@@ -45,6 +45,7 @@ Function Set-RegistryProperty {
     } else {
         # Set the property value in the registry
         Set-ItemProperty -Path $registryPath -Name $propertyName -Value $value -Force
+		Write-Log "Set $propertyName with $value in $registryPath"
     }
 }
 
@@ -740,11 +741,11 @@ function Araid-LegacyRepair {
 	Write-Host "Please wait..."
 	
 	# Disable Automatic Restart
+	Write-Log "Disable Automatic Restart"
 	$registryPath="HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl"
 	$propertyName="AutoReboot"
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Disable Automatic Restart"
 	
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
@@ -864,10 +865,11 @@ Function Araid-CleanAndRestart {
 	# Update the settings value (index 8) to 2
 	$currentSettings.Settings[8] = 2
 
-	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.Settings
 	Write-Log "Show Taskbar"
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $currentSettings.Settings
 
 	# Show Desktop Icons
+	Write-Log "Show Desktop Icons"
 	$registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop"
 	$propertyName = 'FFlags'
 	$value = 1075839524
@@ -881,25 +883,24 @@ Function Araid-CleanAndRestart {
 	$propertyName = 'HideIcons'
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Show Desktop Icons"
 
+	Write-Log "Remove Recent in File Explorer Home"
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
 	$propertyName = 'ShowRecent'
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Remove Recent in File Explorer Home"
 
+	Write-Log "Remove Frequent Folders in Quick Access in File Explorer Home"
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
 	$propertyName = 'ShowFrequent'
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Remove Frequent Folders in Quick Access in File Explorer Home"
 
+	Write-Log "Turn Off Show Files from Office.com in File Explorer Home for Current User"
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer'
 	$propertyName = 'ShowCloudFilesInQuickAccess'
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Turn Off Show Files from Office.com in File Explorer Home for Current User"
 
 	#$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
 	#$propertyName = 'DisableGraphRecentItems'
@@ -907,36 +908,34 @@ Function Araid-CleanAndRestart {
 	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	#Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
 
+	Write-Log "Open File Explorer to This PC"
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 	$propertyName = 'LaunchTo'
 	$value = 1
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Open File Explorer to This PC"
-
+	
+	Write-Log "Show hidden files, folders and drives"
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 	$propertyName = 'Hidden'
 	$value = 1
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Show hidden files, folders and drives"
 
-	# Show This PC on desktop
+	Write-Log "Show This PC on desktop"
 	$registryPath="HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel"
 	$propertyName="{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Show This PC on desktop"
-	
-	# Disable Automatic Restart
+
+	Write-Log "Disable Automatic Restart"
 	$registryPath="HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl"
 	$propertyName="AutoReboot"
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Disable Automatic Restart"
-	
+
+	Write-Log "Changed debugging: Kernel memory dump"	
 	$propertyName="CrashDumpEnabled"
 	$value = 2
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	Write-Log "Changed debugging: Kernel memory dump"
 
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
@@ -1068,6 +1067,16 @@ Function Araid-CleanAndRestart {
 	
 	#Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
 	#Write-Log "cleanmgr /d $env:homedrive"
+	
+	# Define the desired install date
+	Write-log "Change installdate to current date"
+	$DesiredDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+	$registryPath="HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+	$propertyName="InstallDate"
+	$value = [int][double]::Parse((Get-Date $DesiredDate -UFormat %s))
+	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
+	
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
