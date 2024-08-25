@@ -302,7 +302,7 @@ function Clear-WindowsSearch {
     Stop-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
 
 	# Delete Windows Search cache files
-	Remove-Item -Path "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search" -Recurse -Force -ErrorAction Stop
+	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search"
 	Write-Log "Deleted Windows Search cache files"
 
 	#Start-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
