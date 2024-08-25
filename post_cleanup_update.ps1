@@ -167,8 +167,8 @@ Function Clear-MicrosoftDefenderAntivirus
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpenginedb.db"
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Support"
 	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Definition Updates\{GUID}"
-    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.bin"
-    Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
+    Remove-File "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.bin"
+    Remove-File "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
 }
 
 function Stop-Services {
