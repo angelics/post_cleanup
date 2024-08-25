@@ -224,74 +224,12 @@ function Stop-Services {
     }
 }
 
-# not disabling services, start-services is not needed
-<# function Start-Services {
-
-    param (
-        [Parameter(Mandatory = $true)][string]$service,
-        [int]$RetryCount = 3,
-        [int]$RetryDelaySeconds = 5
-    )
-
-    try {
-        # Check if the service's start type is 'Disabled'
-        $serviceController = Get-WmiObject -Class Win32_Service -Filter "Name='$service'"
-        if ($serviceController.StartMode -eq 'Disabled') {
-            Write-Host "$service is disabled and will not be started."
-            return
-        }
-
-        # Check and start dependent services first
-        $dependentServices = Get-Service -Name $service | Select-Object -ExpandProperty DependentServices
-        foreach ($dep in $dependentServices) {
-            if ($dep.Status -eq 'Stopped') {
-                Write-Host "Starting dependent service: $($dep.Name)"
-                Start-Service -Name $dep.Name
-                # Optionally, you can add retry logic here if necessary.
-            }
-        }
-
-        # Check the current status of the service
-        if ((Get-Service -Name $service).Status -eq 'Stopped') {
-            $attempt = 0
-            while ($attempt -lt $RetryCount) {
-                try {
-                    Write-Host "Attempting to start $service... (Attempt $($attempt + 1))"
-                    Start-Service -Name $service
-
-                    # Check if the service is running after the attempt
-                    if ((Get-Service -Name $service).Status -eq 'Running') {
-                        Write-Host "$service started successfully."
-                        return  # Exit the function if successful
-                    }
-                } catch {
-                    Write-Host "Attempt $($attempt + 1) to start $service failed. Retrying in $RetryDelaySeconds seconds..."
-                    Start-Sleep -Seconds $RetryDelaySeconds
-                }
-
-                $attempt++
-            }
-
-            # After retry attempts, throw an error if the service is still stopped
-            if ((Get-Service -Name $service).Status -eq 'Stopped') {
-                throw "Failed to start $service after $RetryCount attempts."
-            }
-        } else {
-            Write-Host "$service is already running."
-        }
-    } catch {
-        Write-Host "Failed to start service: $_"
-    }
-} #>
-
 function Clear-WindowsUpdateCache {
 	
     Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
 
 	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
 	Write-Log "Windows Update cache files deleted."
-
-	#Start-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
 	
 }
 
@@ -304,8 +242,6 @@ function Clear-WindowsSearch {
 	# Delete Windows Search cache files
 	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search"
 	Write-Log "Deleted Windows Search cache files"
-
-	#Start-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
 	
 }
 
@@ -1205,11 +1141,7 @@ function Move-Folder {
                 # Create junction
                 Start-Process cmd.exe -ArgumentList "/c MKLINK /J $source $destination" -NoNewWindow -Wait
                 Write-Log "MKLINK /J $source $destination"
-				
-				# Start the associated service if it was stopped
-				#if (-not [string]::IsNullOrEmpty($Service)) {
-				#	Start-Services -service $Service -RetryCount 3 -RetryDelaySeconds 5
-				#}		
+					
             } catch {
                 Write-Log "Error moving ${source}: $_"
             }
