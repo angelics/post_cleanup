@@ -636,37 +636,48 @@ Function Araid-install-package {
 }
 
 function Araid-upgrade-package {
-	
-	Clear-Host
-	
-	Write-Host "upgrade started."
-	Write-Host "Please wait..."
-	
-	Check-winget
-	
-	$pinapps = @(
-        "Discord.Discord",
-        "Microsoft.DevHome",
-        "Microsoft.Edge",
-        "Cisco.Webex"
+
+    Clear-Host
+    Write-Host "Upgrade started."
+    Write-Host "Please wait..."
+
+    Check-winget
+
+    $pinapps = @(
+        @{ id = "Microsoft.AppInstaller"; version = "1.23.1911.0" },
+        @{ id = "Cisco.Webex"; version = "" },
+        @{ id = "Microsoft.Edge"; version = "" },
+        @{ id = "Microsoft.DevHome"; version = "" },
+        @{ id = "Discord.Discord"; version = "" }
     )
-	
-	ForEach ($pinapp in $pinapps){
-		try {
-			Start-Process cmd.exe -ArgumentList "/c winget pin add --id $pinapp --blocking --accept-source-agreements" -Wait -NoNewWindow
-			Write-Log "$pinapp blocked from upgrade through winget"
-		} catch {
-			Write-Log "An error occurred: $_"
-		}
-	}
-	
-	try {
+
+    ForEach ($pinapp in $pinapps) {
+        
+        $id = $pinapp.id
+        $version = $pinapp.version
+        
+        try {
+            # Construct the winget pin command based on whether a version is provided
+            $wingetCommand = if ($version) {
+                "/c winget pin add --id $id --version $version --blocking --accept-source-agreements"
+            } else {
+                "/c winget pin add --id $id --blocking --accept-source-agreements"
+            }
+            
+            Start-Process cmd.exe -ArgumentList $wingetCommand -Wait -NoNewWindow
+            Write-Log "$id $version blocked from upgrade through winget"
+        } catch {
+            Write-Log "An error occurred while pinning $id: $_"
+        }
+    }
+
+    try {
         Start-Process cmd.exe -ArgumentList "/c winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
         Write-Host "Upgrade done."
     } catch {
-        Write-Log "An error occurred: $_"
+        Write-Log "An error occurred during the upgrade: $_"
     }
-	
+
 }
 
 function Araid-LegacyRepair {
@@ -1005,14 +1016,13 @@ Function Araid-CleanAndRestart {
 	#Write-Log "cleanmgr /d $env:homedrive"
 	
 	# Define the desired install date
-	Write-log "Change installdate to current date"
-	$DesiredDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+	#Write-log "Change installdate to current date"
+	#$DesiredDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-	$registryPath="HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-	$propertyName="InstallDate"
-	$value = [int][double]::Parse((Get-Date $DesiredDate -UFormat %s))
-	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	
+	#$registryPath="HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+	#$propertyName="InstallDate"
+	#$value = [int][double]::Parse((Get-Date $DesiredDate -UFormat %s))
+	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
@@ -1038,6 +1048,7 @@ function kill-necessary {
 }
 
 function Clear-Taskbar {
+	
     $shortcutsToKeep = @("Microsoft Edge.lnk", "File Explorer.lnk")
     
     $taskbarPath = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
