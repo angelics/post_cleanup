@@ -659,7 +659,7 @@ function Araid-upgrade-package {
         try {
             # Construct the winget pin command based on whether a version is provided
             $wingetCommand = if ($version) {
-                "/c winget pin add --id $id --version $version --accept-source-agreements"
+                "/c winget pin add --id $id --version `"$version`" --accept-source-agreements"
             } else {
                 "/c winget pin add --id $id --blocking --accept-source-agreements"
             }
