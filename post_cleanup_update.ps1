@@ -638,10 +638,14 @@ Function Araid-install-package {
 function Araid-upgrade-package {
 
     Clear-Host
+	
     Write-Host "Upgrade started."
     Write-Host "Please wait..."
 
     Check-winget
+
+	#clear pin list by force before adding our own list
+	Start-Process cmd.exe -ArgumentList "/c winget pin reset --force" -Wait -NoNewWindow
 
     $pinapps = @(
         @{ id = "Microsoft.AppInstaller"; version = "1.23.1911.0" },
