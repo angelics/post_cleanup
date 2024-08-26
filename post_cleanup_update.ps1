@@ -667,7 +667,7 @@ function Araid-upgrade-package {
             Start-Process cmd.exe -ArgumentList $wingetCommand -Wait -NoNewWindow
             Write-Log "$id $version blocked from upgrade through winget"
         } catch {
-            Write-Log "An error occurred while pinning $id: $_"
+            Write-Log "An error occurred while pinning ${id}: $_"
         }
     }
 
