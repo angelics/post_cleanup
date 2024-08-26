@@ -649,7 +649,7 @@ function Araid-upgrade-package {
 	Write-Log "reset winget pin list --force"
 	
     $pinapps = @(
-        @{ id = "Microsoft.AppInstaller"; version = "1.23.1911.0" },
+        @{ id = "Microsoft.AppInstaller"; version = "1.23.191*" },
         @{ id = "Cisco.Webex"; version = "" },
         @{ id = "Microsoft.Edge"; version = "" },
         @{ id = "Microsoft.DevHome"; version = "" },
