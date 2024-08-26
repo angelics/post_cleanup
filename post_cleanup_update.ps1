@@ -646,7 +646,8 @@ function Araid-upgrade-package {
 
 	#clear pin list by force before adding our own list
 	Start-Process cmd.exe -ArgumentList "/c winget pin reset --force" -Wait -NoNewWindow
-
+	Write-Log "reset winget pin list --force"
+	
     $pinapps = @(
         @{ id = "Microsoft.AppInstaller"; version = "1.23.1911.0" },
         @{ id = "Cisco.Webex"; version = "" },
