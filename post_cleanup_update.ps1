@@ -1050,6 +1050,8 @@ function kill-necessary {
         }
     }
 	
+	Write-Host "Kill necessary process done."
+	
 }
 
 function Clear-Taskbar {
