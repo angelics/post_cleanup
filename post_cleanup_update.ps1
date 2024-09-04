@@ -1029,10 +1029,10 @@ Function Araid-CleanAndRestart {
 	#$value = [int][double]::Parse((Get-Date $DesiredDate -UFormat %s))
 	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	
-	Set-SmbClientConfiguration -RequireSecuritySignature $false
-	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false"
-	Set-SmbClientConfiguration -RequireSecuritySignature $false
-	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false"
+	Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
+	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
+	Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
+	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
