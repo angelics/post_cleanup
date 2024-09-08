@@ -812,8 +812,9 @@ Function Araid-CleanAndRestart {
 
     foreach ($shortcut in $allShortcuts) {
         if ($shortcutsToKeep -notcontains $shortcut.Name) {
+			$shortcutPath = $shortcut.FullName
             try {
-                Remove-File "$shortcut.FullName"
+                Remove-File "$shortcutPath"
             }
             catch {
                 Write-Log "Failed to remove: $($shortcut.Name). Error: $_"
