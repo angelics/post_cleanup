@@ -805,7 +805,21 @@ Function Araid-CleanAndRestart {
 	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 	Write-Log "Clear recycle bin"
 	
-	Clear-Taskbar
+	$shortcutsToKeep = @("Microsoft Edge.lnk", "File Explorer.lnk")
+    
+    $taskbarPath = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
+    $allShortcuts = Get-ChildItem -Path $taskbarPath -Filter *.lnk
+
+    foreach ($shortcut in $allShortcuts) {
+        if ($shortcutsToKeep -notcontains $shortcut.Name) {
+            try {
+                Remove-File "$shortcut.FullName"
+            }
+            catch {
+                Write-Log "Failed to remove: $($shortcut.Name). Error: $_"
+            }
+        }
+    }
 	
 	# Show Taskbar
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
@@ -1057,25 +1071,6 @@ function kill-necessary {
 	
 	Write-Host "Kill necessary process done."
 	
-}
-
-function Clear-Taskbar {
-	
-    $shortcutsToKeep = @("Microsoft Edge.lnk", "File Explorer.lnk")
-    
-    $taskbarPath = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
-    $allShortcuts = Get-ChildItem -Path $taskbarPath -Filter *.lnk
-
-    foreach ($shortcut in $allShortcuts) {
-        if ($shortcutsToKeep -notcontains $shortcut.Name) {
-            try {
-                Remove-File "$shortcut.FullName"
-            }
-            catch {
-                Write-Log "Failed to remove: $($shortcut.Name). Error: $_"
-            }
-        }
-    }
 }
 
 function Move-Pagefile {
