@@ -1069,7 +1069,7 @@ function Clear-Taskbar {
     foreach ($shortcut in $allShortcuts) {
         if ($shortcutsToKeep -notcontains $shortcut.Name) {
             try {
-                Remove-File "$shortcut.Name"
+                Remove-File "$shortcut.FullName"
             }
             catch {
                 Write-Log "Failed to remove: $($shortcut.Name). Error: $_"
