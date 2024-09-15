@@ -1046,8 +1046,8 @@ Function Araid-CleanAndRestart {
 	
 	Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
 	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
-	Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
-	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
+	Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force
+	Write-log "Set-SmbClientConfiguration -EnableInsecureGuestLogons true -Force"
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
