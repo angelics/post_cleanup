@@ -1,6 +1,6 @@
 {
 	"$schema" : "https://aka.ms/winget-packages.schema.2.0.json",
-	"CreationDate" : "2024-08-28T14:00:34.414-00:00",
+	"CreationDate" : "2024-10-08T14:58:19.936-00:00",
 	"Sources" : 
 	[
 		{
@@ -34,6 +34,9 @@
 					"PackageIdentifier" : "Microsoft.VSTOR"
 				},
 				{
+					"PackageIdentifier" : "Zoom.Zoom"
+				},
+				{
 					"PackageIdentifier" : "Google.Chrome"
 				},
 				{
@@ -43,13 +46,7 @@
 					"PackageIdentifier" : "Microsoft.PowerShell"
 				},
 				{
-					"PackageIdentifier" : "Zoom.Zoom"
-				},
-				{
 					"PackageIdentifier" : "CodecGuide.K-LiteCodecPack.Mega"
-				},
-				{
-					"PackageIdentifier" : "Microsoft.Edge"
 				},
 				{
 					"PackageIdentifier" : "Microsoft.EdgeWebView2Runtime"
@@ -61,7 +58,7 @@
 					"PackageIdentifier" : "Microsoft.DotNet.DesktopRuntime.8"
 				},
 				{
-					"PackageIdentifier" : "Microsoft.DotNet.DesktopRuntime.Preview"
+					"PackageIdentifier" : "AnyDeskSoftwareGmbH.AnyDesk"
 				},
 				{
 					"PackageIdentifier" : "Microsoft.VCRedist.2005.x86"
@@ -71,6 +68,9 @@
 				},
 				{
 					"PackageIdentifier" : "Microsoft.VCRedist.2010.x86"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.DotNet.DesktopRuntime.Preview"
 				},
 				{
 					"PackageIdentifier" : "Microsoft.DotNet.DesktopRuntime.6"
