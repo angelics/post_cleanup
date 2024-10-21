@@ -1070,6 +1070,8 @@ function kill-necessary {
         }
     }
 	
+	Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+	
 	Write-Host "Kill necessary process done."
 	
 }
