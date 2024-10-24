@@ -677,7 +677,7 @@ function Araid-upgrade-package {
     }
 
     try {
-        Start-Process cmd.exe -ArgumentList "/c winget upgrade --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
+        Start-Process cmd.exe -ArgumentList "/c winget upgrade --include-unknown --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
         Write-Host "Upgrade done."
     } catch {
         Write-Log "An error occurred during the upgrade: $_"
