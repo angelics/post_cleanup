@@ -677,6 +677,7 @@ function Araid-upgrade-package {
     }
 
     try {
+		Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod
         Start-Process cmd.exe -ArgumentList "/c winget upgrade --include-unknown --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
         Write-Host "Upgrade done."
     } catch {
