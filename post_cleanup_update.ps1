@@ -653,6 +653,7 @@ function Araid-upgrade-package {
         @{ id = "Cisco.Webex"; version = "" },
         @{ id = "Microsoft.Edge"; version = "" },
         @{ id = "Microsoft.DevHome"; version = "" },
+        @{ id = "Microsoft.OneDrive"; version = "" },
         @{ id = "Discord.Discord"; version = "" }
     )
 
