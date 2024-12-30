@@ -1160,7 +1160,7 @@ function Move-Folder {
                 }
 
                 # Create junction
-                Start-Process cmd.exe -ArgumentList "/c MKLINK /J $source $destination" -NoNewWindow -Wait
+                Start-Process cmd.exe -ArgumentList "/c MKLINK /J ""$source"" ""$destination""" -NoNewWindow -Wait
                 Write-Log "MKLINK /J $source $destination"
 					
             } catch {
