@@ -694,6 +694,20 @@ function Araid-LegacyRepair {
 	Write-Host "Legacy repair started. Recommend to run at least 2 times."
 	Write-Host "Please wait..."
 	
+	# Check if NahimicService exists
+	$service = Get-Service -Name "NahimicService" -ErrorAction SilentlyContinue
+
+	if ($service) {
+		if ($service.StartType -ne 'Disabled') {
+			Write-Log "Disabling NahimicService..."
+			Set-Service -Name "NahimicService" -StartupType Disabled
+		} else {
+			Write-Log "NahimicService is already disabled."
+		}
+	} else {
+		Write-Log "NahimicService does not exist."
+	}
+
 	# Disable Automatic Restart
 	Write-Log "Disable Automatic Restart"
 	$registryPath="HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl"
