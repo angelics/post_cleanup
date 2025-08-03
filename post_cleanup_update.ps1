@@ -693,20 +693,6 @@ function Araid-LegacyRepair {
 	
 	Write-Host "Legacy repair started. Recommend to run at least 2 times."
 	Write-Host "Please wait..."
-	
-	# Check if NahimicService exists
-	$service = Get-Service -Name "NahimicService" -ErrorAction SilentlyContinue
-
-	if ($service) {
-		if ($service.StartType -ne 'Disabled') {
-			Write-Log "Disabling NahimicService..."
-			Set-Service -Name "NahimicService" -StartupType Disabled
-		} else {
-			Write-Log "NahimicService is already disabled."
-		}
-	} else {
-		Write-Log "NahimicService does not exist."
-	}
 
 	# Disable Automatic Restart
 	Write-Log "Disable Automatic Restart"
@@ -816,6 +802,25 @@ Function Araid-CleanAndRestart {
 
 	Write-Host "Cleaning started."
 	Write-Host "Please wait..."
+
+	Write-Host "Check if NahimicService exists"
+	$service = Get-Service -Name "NahimicService" -ErrorAction SilentlyContinue
+
+	if ($service) {
+        if ($service.Status -eq 'Running') {
+            Write-Log "Stopping NahimicService..."
+            Stop-Service -Name "NahimicService" -Force -ErrorAction SilentlyContinue
+        }
+
+        Write-Log "Setting NahimicService to Disabled startup..."
+        Set-Service -Name "NahimicService" -StartupType Disabled -ErrorAction SilentlyContinue
+
+        # Confirm changes
+        $updated = Get-Service -Name "NahimicService"
+        Write-Log "Status: $($updated.Status), StartupType: Disabled"
+	} else {
+		Write-Log "NahimicService does not exist."
+	}
 
 	# Clear recycle bin
 	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
