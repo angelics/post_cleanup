@@ -225,9 +225,17 @@ function Stop-Services {
 }
 
 function Clear-WindowsUpdateCache {
+	$services = @(
+        "wuauserv",           # Windows Update
+        "bits",               # Background Intelligent Transfer Service
+        "dosvc",              # Delivery Optimization
+        "cryptsvc"            # Cryptographic Services
+    )
 	
-    Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
-
+	foreach ($svc in $services) {
+		Stop-Services -service $svc -RetryCount 3 -RetryDelaySeconds 5
+	}
+	
 	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
 	Write-Log "Windows Update cache files deleted."
 	
@@ -1092,7 +1100,16 @@ function kill-necessary {
         }
     }
 	
-	Stop-Services -service "wuauserv" -RetryCount 3 -RetryDelaySeconds 5
+	$services = @(
+        "wuauserv",           # Windows Update
+        "bits",               # Background Intelligent Transfer Service
+        "dosvc",              # Delivery Optimization
+        "cryptsvc"            # Cryptographic Services
+    )
+	
+	foreach ($svc in $services) {
+		Stop-Services -service $svc -RetryCount 3 -RetryDelaySeconds 5
+	}
 	
 	Write-Host "Kill necessary process done."
 	
