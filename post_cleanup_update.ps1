@@ -1104,7 +1104,8 @@ function kill-necessary {
         "wuauserv",           # Windows Update
         "bits",               # Background Intelligent Transfer Service
         "dosvc",              # Delivery Optimization
-        "cryptsvc"            # Cryptographic Services
+        "cryptsvc",           # Cryptographic Services
+        "AppIDSvc"            # Application Identity			
     )
 	
 	foreach ($svc in $services) {
