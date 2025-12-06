@@ -1286,7 +1286,7 @@ Function OEMofficeActivation {
     if (Is-WindowsActivated) {
         Write-Log "Windows is already activated."
         Write-Host "Windows is already activated."
-		$oem = true
+		$oem = $true
     } else {
         Write-Log "Windows is not activated. Installing OEM SLP key from BIOS..."
         Write-Host "Windows is not activated. Installing OEM SLP key from BIOS..."
@@ -1299,11 +1299,11 @@ Function OEMofficeActivation {
             Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ato" -Wait
             Write-Log "Windows activation attempted."
             Write-Host "Windows activation attempted."
-			$oem = true
+			$oem = $true
         } else {
             Write-Log "No OEM SLP key found in BIOS. Activation skipped."
             Write-Host "No OEM SLP key found in BIOS. Activation skipped."
-			$oem = false
+			$oem = $false
         }
     }
 	
