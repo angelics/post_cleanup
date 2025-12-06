@@ -79,6 +79,9 @@
 					"PackageIdentifier" : "Telegram.TelegramDesktop"
 				},
 				{
+					"PackageIdentifier" : "TheDocumentFoundation.LibreOffice"
+				},
+				{
 					"PackageIdentifier" : "Microsoft.Teams"
 				},
 				{
