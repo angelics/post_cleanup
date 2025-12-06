@@ -1116,6 +1116,58 @@ function kill-necessary {
 	
 }
 
+Function Close-OfficeApps {
+    $apps = @("WINWORD","MSACCESS","EXCEL","ONENOTE","OUTLOOK","POWERPNT","MSPUB")
+    foreach ($app in $apps) {
+        $proc = Get-Process -Name $app -ErrorAction SilentlyContinue
+        if ($proc) {
+            Stop-Process -Name $app -Force -ErrorAction SilentlyContinue
+            Write-log "Closed $app"
+        }
+    }
+}
+
+Function Set-OEMRegistry {
+    $paths = @(
+        "HKLM:\SOFTWARE\Microsoft\Office\16.0\Common\OEM",
+        "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Office\16.0\Common\OEM"
+    )
+    foreach ($p in $paths) {
+        if (!(Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
+        Set-ItemProperty -Path $p -Name OOBEMode -Value "OEMTA"
+        Write-log "Set OOBEMode at $p"
+    }
+}
+
+Function Is-WindowsActivated {
+    try {
+        $output = cscript.exe /Nologo "C:\Windows\System32\slmgr.vbs" /xpr 2>&1
+        # Return True if output does NOT contain "not activated"
+        return -not ($output -match "not activated")
+    }
+    catch {
+        return $false
+    }
+}
+
+Function Activate-Office {
+    $officePaths = @(
+        "$env:ProgramFiles\Microsoft Office\root\Office16"
+    )
+
+    if ($env:ProgramFiles -and ${env:ProgramFiles(x86)}) {
+        $officePaths += "${env:ProgramFiles(x86)}\Microsoft Office\root\Office16"
+    }
+
+    foreach ($p in $officePaths) {
+        $ospp = Join-Path $p "OSPP.VBS"
+        if (Test-Path $ospp) {
+            cscript.exe $ospp /act | Out-Null
+            Write-log "Triggered Office activation at $p"
+        }
+    }
+}
+
 function Move-Pagefile {
 	
     param (
@@ -1215,6 +1267,49 @@ function Move-Folder {
     }
 
     Write-Host "Move folder done."
+}
+
+Function OEMofficeActivation {
+	
+	Write-Log "Starting OEM Office Activation..."
+	
+	# Clear console history
+	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
+	Write-Log "Clear console history"
+	Remove-File "$ConsoleHistory"
+		
+	# Check Windows activation
+    if (Is-WindowsActivated) {
+        Write-Log "Windows is already activated."
+		$oem = true
+    } else {
+        Write-Log "Windows is not activated. Installing OEM SLP key from BIOS..."
+        $OEMKey = (Get-WmiObject -Query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
+
+        if ($OEMKey) {
+            Write-Log "Detected OEM SLP Key: $OEMKey"
+            Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ipk $OEMKey" -Wait
+            Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ato" -Wait
+            Write-Log "Windows activation attempted."
+			$oem = true
+        } else {
+            Write-Log "No OEM SLP key found in BIOS. Activation skipped."
+			$oem = false
+        }
+    }
+	
+	if ($oem) {
+		# Activate Office
+		Close-OfficeApps
+		Set-OEMRegistry
+		Activate-Office
+		Write-Log "OEM Office Activation Completed."
+	} else {
+		Write-Log "Non-OEM system detected. Office activation skipped."
+	}
+	
+	# Wait for user confirmation
+	Read-Host -Prompt "Press Enter to restart the computer..."
 }
 
 Clear-Host
@@ -1355,6 +1450,23 @@ $button5.Add_Click({
 	Move-Folder
 })
 
+# Create label for OEMofficeActivation
+$label6 = New-Object System.Windows.Forms.Label
+$label6.Text = "OEMofficeActivation"
+$label6.Location = New-Object System.Drawing.Point(270, 340)
+$label6.Size = New-Object System.Drawing.Size(190, 20)
+
+# Create button for OEMofficeActivation
+$button6 = New-Object System.Windows.Forms.Button
+$button6.Text = "OEMofficeActivation"
+$button6.Location = New-Object System.Drawing.Point(50, 340)
+$button6.Size = New-Object System.Drawing.Size(190, 30)
+$button6.Add_Click({
+	$allowClose = $true
+	$Form.Close()
+	OEMofficeActivation
+})
+
 # Add buttons to the form
 $form.Controls.Add($label1)
 $form.Controls.Add($button1)
@@ -1366,6 +1478,8 @@ $form.Controls.Add($label4)
 $form.Controls.Add($button4)
 $form.Controls.Add($label5)
 $form.Controls.Add($button5)
+$form.Controls.Add($label6)
+$form.Controls.Add($button6)
 
 # Show the form
 $form.ShowDialog()
