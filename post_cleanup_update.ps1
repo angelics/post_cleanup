@@ -1270,29 +1270,39 @@ function Move-Folder {
 
 Function OEMofficeActivation {
 	
+	Clear-Host
+
+	Write-Host "Starting OEM Office Activation..."
 	Write-Log "Starting OEM Office Activation..."
+	Write-Host "Please wait..."
 	
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
+	Write-Host "Clear console history"
 	Remove-File "$ConsoleHistory"
 		
 	# Check Windows activation
     if (Is-WindowsActivated) {
         Write-Log "Windows is already activated."
+        Write-Host "Windows is already activated."
 		$oem = true
     } else {
         Write-Log "Windows is not activated. Installing OEM SLP key from BIOS..."
+        Write-Host "Windows is not activated. Installing OEM SLP key from BIOS..."
         $OEMKey = (Get-WmiObject -Query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
 
         if ($OEMKey) {
             Write-Log "Detected OEM SLP Key: $OEMKey"
+            Write-Host "Detected OEM SLP Key: $OEMKey"
             Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ipk $OEMKey" -Wait
             Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ato" -Wait
             Write-Log "Windows activation attempted."
+            Write-Host "Windows activation attempted."
 			$oem = true
         } else {
             Write-Log "No OEM SLP key found in BIOS. Activation skipped."
+            Write-Host "No OEM SLP key found in BIOS. Activation skipped."
 			$oem = false
         }
     }
@@ -1303,8 +1313,10 @@ Function OEMofficeActivation {
 		Set-OEMRegistry
 		Activate-Office
 		Write-Log "OEM Office Activation Completed."
+		Write-Host "OEM Office Activation Completed."
 	} else {
 		Write-Log "Non-OEM system detected. Office activation skipped."
+		Write-Host "Non-OEM system detected. Office activation skipped."
 	}
 	
 	# Wait for user confirmation
@@ -1346,7 +1358,7 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
 # Create the form
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
-$form.Size = New-Object System.Drawing.Size(480, 370)
+$form.Size = New-Object System.Drawing.Size(480, 430)
 $form.TopMost = $true
 
 # Remove minimize, maximize, close buttons and disable form resize
