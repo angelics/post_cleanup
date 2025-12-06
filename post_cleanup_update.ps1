@@ -1141,11 +1141,10 @@ Function Set-OEMRegistry {
 
 Function Is-WindowsActivated {
     try {
-        $output = cscript.exe /Nologo "C:\Windows\System32\slmgr.vbs" /xpr 2>&1
-        # Return True if output does NOT contain "not activated"
-        return -not ($output -match "not activated")
-    }
-    catch {
+        $status = Get-CimInstance -Class SoftwareLicensingProduct `
+            | Where-Object { $_.PartialProductKey -and $_.LicenseStatus -eq 1 }
+        return $status -ne $null
+    } catch {
         return $false
     }
 }
