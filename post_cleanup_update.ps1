@@ -1463,14 +1463,14 @@ $button5.Add_Click({
 
 # Create label for OEMofficeActivation
 $label6 = New-Object System.Windows.Forms.Label
-$label6.Text = "OEMofficeActivation"
+$label6.Text = "OEM office Activation"
 $label6.Location = New-Object System.Drawing.Point(270, 340)
 $label6.Size = New-Object System.Drawing.Size(190, 20)
 
 # Create button for OEMofficeActivation
 $button6 = New-Object System.Windows.Forms.Button
 $button6.Text = "OEMofficeActivation"
-$button6.Location = New-Object System.Drawing.Point(50, 340)
+$button6.Location = New-Object System.Drawing.Point(50, 330)
 $button6.Size = New-Object System.Drawing.Size(190, 30)
 $button6.Add_Click({
 	$allowClose = $true
