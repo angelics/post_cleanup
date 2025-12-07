@@ -1473,8 +1473,6 @@ $button6.Text = "OEMofficeActivation"
 $button6.Location = New-Object System.Drawing.Point(50, 330)
 $button6.Size = New-Object System.Drawing.Size(190, 30)
 $button6.Add_Click({
-	$allowClose = $true
-	$Form.Close()
 	OEMofficeActivation
 })
 
