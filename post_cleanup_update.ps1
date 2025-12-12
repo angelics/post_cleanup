@@ -2,7 +2,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $global:wingetChecked = $false
 
-$log = "$env:systemroot\Logs\araid\araid_post.log"
+$log = "$env:systemroot\araid\araid_post.log"
 
 # Get the directory of the original log file
 $logDirectory = Split-Path -Path $log -Parent
