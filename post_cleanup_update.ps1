@@ -1133,34 +1133,63 @@ Function Araid-CleanAndRestart {
 	
 }
 
+function Stop-ServiceSafely {
+    param(
+        [Parameter(Mandatory)][string]$ServiceName,
+        [int]$TimeoutSeconds = 90
+    )
+
+    Write-Log "Stopping service: $ServiceName"
+
+    Stop-Services -service $ServiceName -RetryCount 3 -RetryDelaySeconds 5
+
+    $elapsed = 0
+    while ($elapsed -lt $TimeoutSeconds) {
+        $status = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
+
+        if ($status -eq 'Stopped') {
+            Write-Log "$ServiceName fully stopped"
+            return $true
+        }
+
+        Start-Sleep -Seconds 2
+        $elapsed += 2
+    }
+
+    Write-Log "$ServiceName did not stop within $TimeoutSeconds seconds" "Yellow"
+    return $false
+}
+
+
 function kill-necessary {
-	
-    $tasks = @("explorer.exe", "skype.exe", "discord.exe", "firefox.exe", "chrome.exe", "msedge.exe", "steam.exe", "winword.exe", "CiscoCollabHost.exe")
+
+    $tasks = @(
+        "explorer.exe","skype.exe","discord.exe","firefox.exe",
+        "chrome.exe","msedge.exe","steam.exe","winword.exe","CiscoCollabHost.exe"
+    )
 
     foreach ($task in $tasks) {
-        $command = "taskkill /f /im $task"
-
         try {
-            Start-Process cmd.exe -ArgumentList "/c $command" -NoNewWindow -Wait
+            Start-Process cmd.exe -ArgumentList "/c taskkill /f /im $task" -NoNewWindow -Wait
             Write-Log "Task killed: $task"
-        }
-        catch {
-            Write-Log "Error occurred while trying to kill task {$task}: $_"
+        } catch {
+            Write-Log "Failed to kill task $task: $_" "Yellow"
         }
     }
-	
-	$services = @(
-        "wuauserv",           # Windows Update
-        "bits",               # Background Intelligent Transfer Service
-        "dosvc"               # Delivery Optimization
+
+    # Order matters (least risky → most risky)
+    $services = @(
+        "AppIDSvc",
+        "bits",
+        "dosvc",
+        "wuauserv"
     )
-	
-	foreach ($svc in $services) {
-		Stop-Services -service $svc -RetryCount 3 -RetryDelaySeconds 5
-	}
-	
-	Write-Log "Kill necessary process done."
-	
+
+    foreach ($svc in $services) {
+        Stop-ServiceSafely -ServiceName $svc -TimeoutSeconds 120
+    }
+
+    Write-Log "Kill necessary process done."
 }
 
 Function Close-OfficeApps {
@@ -1258,11 +1287,11 @@ function Move-Folder {
         @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot"; Service = "wuauserv" },
         @{ Source = "$env:systemroot\Temp"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:systemroot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
-		@{ Source = "$env:ProgramData\Package Cache"; DestinationRoot = "D:\ProgramData\Package Cache" }
+		@{ Source = "$env:ProgramData\Package Cache"; DestinationRoot = "D:\ProgramData\Package Cache" },
 		#@{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot"; Service = "TrustedInstaller" } #msi installer will fail
         #@{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs"; Service = "EventLog" }, #always fail
         #@{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows"; Service = "EventLog" } #always fail
-		#@{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }, #write-log folder
+		@{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }
     )
 
     foreach ($folder in $foldersToMove) {
@@ -1354,12 +1383,6 @@ Function OEMofficeActivation {
 }
 
 Clear-Host
-
-Write-Log "Disabling AppLocker safely"
-sc.exe config AppIDSvc start= disabled
-sc.exe stop AppIDSvc
-Start-Sleep -Seconds 10
-
 kill-necessary
 
 # Check if the Win32 type already exists
