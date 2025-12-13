@@ -31,39 +31,31 @@ Function Write-Log {
     }
 }
 
-# Check if the original log file exists
-if (Test-Path -Path $logDirectory) {
-    # Delete the existing log file
-	if (Test-Path -Path $log) {
+# Ensure log directory exists
+if (!(Test-Path $logDirectory)) {
+    New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+}
+
+# Reset log file BEFORE Write-Log is used
+if (Test-Path $log) {
     Remove-Item -Path $log -Force
-	Write-Log "Deleted existing log file: $log"
-	}
-} else {
-	New-Item -ItemType Directory -Path $logDirectory
-	Write-Log "created $logDirectory"
 }
 
 Function Set-RegistryProperty {
     param(
-        [Parameter(Mandatory = $true)][string]$registryPath,
-        [Parameter(Mandatory = $true)][string]$propertyName,
-        [Parameter(Mandatory = $true)][object]$value
+        [Parameter(Mandatory)][string]$registryPath,
+        [Parameter(Mandatory)][string]$propertyName,
+        [Parameter(Mandatory)][object]$value
     )
 
-    # Check if the registry path exists, if not create it
-    if (-not (Test-Path -Path $registryPath)) {
+    if (-not (Test-Path $registryPath)) {
         New-Item -Path $registryPath -Force | Out-Null
     }
 
-    # Check if the registry property exists, if not create it
-    if (-not (Get-ItemProperty -Path $registryPath -Name $propertyName -ErrorAction SilentlyContinue)) {
-        New-ItemProperty -Path $registryPath -Name $propertyName -Value $value -PropertyType DWord -Force | Out-Null
-    } else {
-        # Set the property value in the registry
-        Set-ItemProperty -Path $registryPath -Name $propertyName -Value $value -Force
-		Write-Log "Set $propertyName with $value in $registryPath"
-    }
+    Set-ItemProperty -Path $registryPath -Name $propertyName -Value $value -Force
+    Write-Log "Set $propertyName in $registryPath"
 }
+
 
 # https://gist.githubusercontent.com/mark05e/745afaf5604487b804ede2cdc38a977f/raw/95f5a609972cff862ce3d92ac4c2b918d37de1c1/DriveClean.ps1
 # https://github.com/inode64/WindowsClearCache
@@ -108,7 +100,10 @@ Function Clear-GlobalWindowsCache
 
 Function Clear-UserCacheFiles
 {
-    ForEach ($localUser in (Get-ChildItem "C:\users").Name)
+    ForEach ($localUser in Get-ChildItem "C:\Users" -Directory |
+         Where-Object { $_.Name -notin @("Public","Default","Default User","All Users") } |
+         Select-Object -ExpandProperty Name)
+
     {
 		Clear-AcrobatCacheFiles $localUser
         Clear-ChromeCacheFiles $localUser
@@ -236,7 +231,8 @@ function Stop-Services {
 
     # After retry attempts, throw an error if the service is still running
     if ((Get-Service -Name $service).Status -eq 'Running') {
-        throw "Failed to stop $service after $RetryCount attempts."
+        Write-Log "Failed to stop $service after $RetryCount attempts." "Yellow"
+		return
     }
 }
 
@@ -270,27 +266,24 @@ function Clear-WindowsSearch {
 }
 
 Function Remove-SubFile {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
+    param([string]$Path)
 
-    if (Test-Path -Path $Path) {
-        try {
-            Get-ChildItem -Path $Path -Force -Recurse -ErrorAction SilentlyContinue |
-                Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-            Write-Log "Deleted contents of: $Path"
-        }
-        catch {
-            Write-Log "Failed to delete contents of: $Path. Error: $_" "Yellow"
-        }
-    }
-    else {
+    if (-not (Test-Path $Path)) {
         Write-Log "Path not found (skipped): $Path" "DarkGray"
+        return
+    }
+
+    try {
+		Get-ChildItem -Path $Path -Force -ErrorAction SilentlyContinue |
+			Where-Object { -not $_.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint) } |
+			Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+
+        Write-Log "Deleted contents of: $Path"
+    }
+    catch {
+        Write-Log "Failed to delete contents of: $Path. Error: $_" "Yellow"
     }
 }
-
 
 Function Remove-File {
     param(
@@ -462,15 +455,15 @@ Function Clear-MicrosoftOfficeCacheFiles
     if ((Test-Path "C:\users\$user\AppData\Local\Microsoft\Outlook"))
     {
         Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Outlook\*.pst" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
+                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
         Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Outlook\*.ost" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
+                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
         Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Outlook\*" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
+                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
         Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.MSO\*" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
+                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
         Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Word\*" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -Verbose
+                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
     }
 }
 
@@ -593,7 +586,7 @@ function Clear-DuplicateOldDrivers {
 			# Write-Host "deleting $Name" -ForegroundColor Yellow
 			
 			try {
-				Start-Process pnputil.exe -ArgumentList "/delete-driver $Name" -Wait
+				Start-Process pnputil.exe -ArgumentList "/delete-driver $Name /force" -Wait
 				Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
 			} catch {
 				Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr={$Entr}. Error: $_"
@@ -639,15 +632,17 @@ function Check-Winget {
     
     # Install or upgrade winget if necessary
     if ($wingetVersion -lt $minVersion) {
+		$temp = "$env:TEMP\winget"
+		New-Item -ItemType Directory -Path $temp -Force | Out-Null
         # Install winget
 		# https://github.com/microsoft/winget-cli/issues/1861#issuecomment-1634057674
-        IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile ".\Windows10_PreinstallKit.zip"
-        Expand-Archive -Path ".\Windows10_PreinstallKit.zip" -DestinationPath ".\Windows10_PreinstallKit" -Force
-        Move-Item -Path ".\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination . -Force
-        Remove-Item -Path ".\Windows10_PreinstallKit.zip" -Force
-        Remove-Item -Path ".\Windows10_PreinstallKit" -Recurse -Force
-        Add-AppxPackage -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -ForceApplicationShutdown
-        Remove-Item -Path ".\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Force
+        IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile "$temp\Windows10_PreinstallKit.zip"
+        Expand-Archive -Path "$temp\Windows10_PreinstallKit.zip" -DestinationPath "$temp\Windows10_PreinstallKit" -Force
+        Move-Item -Path "$temp\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination . -Force
+        Remove-Item -Path "$temp\Windows10_PreinstallKit.zip" -Force
+        Remove-Item -Path "$temp\Windows10_PreinstallKit" -Recurse -Force
+        Add-AppxPackage -Path "$temp\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -ForceApplicationShutdown
+        Remove-Item -Path "$temp\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Force
         Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
         Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
     }
@@ -1102,7 +1097,15 @@ Function Araid-CleanAndRestart {
 	Clear-DuplicateOldDrivers
 	
 	Write-Log "Clear all event logs"
-	Get-EventLog -LogName * | ForEach { Clear-EventLog $_.Log }
+	wevtutil el | ForEach-Object {
+		try {
+			wevtutil cl $_
+			Write-Log "Cleared event log: $_"
+		} catch {
+			Write-Log "Failed to clear log $_ : $_" "Yellow"
+		}
+	}
+
 	
 	#Write-Host "Further cleaning up windows update..."
 	#Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
@@ -1149,9 +1152,7 @@ function kill-necessary {
 	$services = @(
         "wuauserv",           # Windows Update
         "bits",               # Background Intelligent Transfer Service
-        "dosvc",              # Delivery Optimization
-        "cryptsvc",           # Cryptographic Services
-        "AppIDSvc"            # Application Identity			
+        "dosvc"               # Delivery Optimization
     )
 	
 	foreach ($svc in $services) {
@@ -1213,50 +1214,41 @@ Function Activate-Office {
     }
 }
 
-function Move-Pagefile {
-	
-    param (
-        [string]$NewPagefileDrive = "D:",
-        [int]$InitialSize = $null,
-        [int]$MaxSize = $null
+Function Move-Pagefile {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Drive,
+        [int]$InitialSize = 4096,
+        [int]$MaximumSize = 8192
     )
 
-    # Path to the registry key for pagefile configuration
-    $pagefileRegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
+    $regPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
 
     try {
-        # Check if the registry key exists
-        if (!(Test-Path $pagefileRegPath)) {
-            Write-Warning "Registry key $pagefileRegPath not found."
-            return $false
-        }
+        Write-Log "Configuring pagefile on $Drive"
 
-        # Get current pagefile configuration
-        $currentConfig = Get-ItemProperty -Path $pagefileRegPath -Name "PagingFiles"
-        $currentPagingFiles = $currentConfig.PagingFiles
+        Set-ItemProperty -Path $regPath -Name AutomaticManagedPagefile -Value 0 -Type DWord
 
-        # Determine initial and maximum sizes
-        if ($null -eq $InitialSize) {
-            $initialSize = $currentPagingFiles.Split(' ')[1]
-        }
-        if ($null -eq $MaxSize) {
-            $maxSize = $currentPagingFiles.Split(' ')[2]
-        }
+        $newPagefile = @("$Drive\pagefile.sys $InitialSize $MaximumSize")
 
-        # Set the new pagefile location with specified sizes
-        $newPagefile = "$NewPagefileDrive\pagefile.sys"
-        $newPagingFileConfig = "$newPagefile $initialSize $maxSize"
+        Set-ItemProperty -Path $regPath -Name PagingFiles -Value $newPagefile -Type MultiString
 
-        # Update the registry key with the new settings
-        Set-ItemProperty -Path $pagefileRegPath -Name "PagingFiles" -Value $newPagingFileConfig
+        Write-Log "Pagefile set to $Drive\pagefile.sys ($InitialSize MB - $MaximumSize MB)"
+        Write-Log "Reboot required for pagefile changes to take effect" "Yellow"
 
-        Write-Log "Pagefile has been moved to $NewPagefileDrive. A system reboot is required."
         return $true
-    } catch [System.Exception] {
-        Write-Log "An error occurred while moving the pagefile: $($_.Exception.Message)"
+    }
+    catch {
+        Write-Log "Failed to configure pagefile: $_" "Red"
         return $false
     }
-	
+}
+
+Function Cleanup-OldPagefiles {
+    Get-ChildItem -Path "C:\" -Filter "pagefile.sys" -Force -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Write-Log "Old pagefile detected: $($_.FullName) (will be removed on reboot)"
+        }
 }
 
 function Move-Folder {
@@ -1290,7 +1282,7 @@ function Move-Folder {
                 
                 # Move the folder
                 if (-not (Test-Path -Path $destination)) {
-                    Move-Item -Path $source -Destination $destination -Force -Verbose
+                    Move-Item -Path $source -Destination $destination -Force -ErrorAction Stop
                     Write-Log "Moved $source to $destination"
                 }
 
@@ -1305,7 +1297,7 @@ function Move-Folder {
     }
 
     # Handle the pagefile
-    if (Move-Pagefile -NewPagefileDrive "D:\") {
+    if (Move-Pagefile -Drive "D:") {
         Write-Log "Pagefile moved successfully. Please reboot the system."
     } else {
         Write-Log "Pagefile move failed. Check the error message."
@@ -1362,6 +1354,12 @@ Function OEMofficeActivation {
 }
 
 Clear-Host
+
+Write-Log "Disabling AppLocker safely"
+sc.exe config AppIDSvc start= disabled
+sc.exe stop AppIDSvc
+Start-Sleep -Seconds 10
+
 kill-necessary
 
 # Check if the Win32 type already exists
@@ -1444,7 +1442,7 @@ $button2.Text = "2. Upgrade Package"
 $button2.Location = New-Object System.Drawing.Point(50, 90)
 $button2.Size = New-Object System.Drawing.Size(190, 30)
 $button2.Add_Click({
-    Araid-upgrade-package
+	Araid-upgrade-package
 })
 
 # Create label for Clean and Restart
