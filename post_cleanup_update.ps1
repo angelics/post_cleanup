@@ -1173,7 +1173,7 @@ function kill-necessary {
             Start-Process cmd.exe -ArgumentList "/c taskkill /f /im $task" -NoNewWindow -Wait
             Write-Log "Task killed: $task"
         } catch {
-            Write-Log "Failed to kill task $task: $_" "Yellow"
+            Write-Log "Failed to kill task ${task}: $_" "Yellow"
         }
     }
 
