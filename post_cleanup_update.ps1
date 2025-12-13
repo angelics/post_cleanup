@@ -325,7 +325,7 @@ Function Clear-ChromeTemplate
 
     if ((Test-Path $path))
     {
-        Write-Output "Clear cache $name"
+        Write-Log "Clear cache $name"
         $possibleCachePaths = @("Cache", "Cache2\entries\", "ChromeDWriteFontCache", "Code Cache", "GPUCache", "JumpListIcons", "JumpListIconsOld", "Media Cache", "Service Worker", "Top Sites", "VisitedLinks", "Web Data", "Preferences", "Local Storage", "Session Storage", "Cookies", "Network", "Sessions" , "IndexedDB")
         ForEach ($cachePath in $possibleCachePaths)
         {
@@ -1103,7 +1103,6 @@ Function Araid-CleanAndRestart {
 	
 	Write-Log "Clear all event logs"
 	Get-EventLog -LogName * | ForEach { Clear-EventLog $_.Log }
-	Write-Log "Clear all event logs"
 	
 	#Write-Host "Further cleaning up windows update..."
 	#Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
@@ -1326,7 +1325,8 @@ Function OEMofficeActivation {
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
 	Remove-File "$ConsoleHistory"
-		
+	$oem = $false
+	
 	# Check Windows activation
     if (Is-WindowsActivated) {
         Write-Log "Windows is already activated."
