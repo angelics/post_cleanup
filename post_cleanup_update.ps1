@@ -8,11 +8,27 @@ $log = "$env:systemroot\araid\araid_post.log"
 $logDirectory = Split-Path -Path $log -Parent
 
 # Function to log messages to the specified log file
-function Write-Log {
+Function Write-Log {
     param(
-        [string]$Message
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [string]$Color = "White"
     )
-    Add-Content -Path $log -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
+
+    try {
+        # Timestamp for log entry
+        $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+
+        # Write to log file
+        Add-Content -Path $log -Value "[$timestamp] $Message"
+
+        # Also show live output
+        Write-Host $Message -ForegroundColor $Color
+    }
+    catch {
+        Write-Host "Failed to write log: $_" -ForegroundColor Red
+    }
 }
 
 # Check if the original log file exists
@@ -185,13 +201,13 @@ function Stop-Services {
             $serviceStatus = (Get-Service -Name $service).Status
 
             if ($serviceStatus -eq 'Running') {
-                Write-Host "Attempting to stop $service... (Attempt $($attempt + 1))"
+                Write-Log "Attempting to stop $service... (Attempt $($attempt + 1))"
 
                 # Get and stop dependent services first
                 $dependentServices = Get-Service -Name $service | Select-Object -ExpandProperty DependentServices
                 foreach ($dep in $dependentServices) {
                     if ($dep.Status -eq 'Running') {
-                        Write-Host "Stopping dependent service: $($dep.Name)"
+                        Write-Log "Stopping dependent service: $($dep.Name)"
                         Stop-Service -Name $dep.Name -Force
                         # Optionally, you can add a loop to retry stopping the dependent service as well.
                     }
@@ -202,16 +218,16 @@ function Stop-Services {
 
                 # Check if the service is stopped after the attempt
                 if ((Get-Service -Name $service).Status -eq 'Stopped') {
-                    Write-Host "$service stopped successfully."
+                    Write-Log "$service stopped successfully."
                     return  # Exit the function if successful
                 }
             } else {
-                Write-Host "$service is already stopped."
+                Write-Log "$service is already stopped."
                 return  # Exit the function if the service is not running
             }
 
         } catch {
-            Write-Host "Attempt $($attempt + 1) to stop $service failed. Retrying in $RetryDelaySeconds seconds..."
+            Write-Log "Attempt $($attempt + 1) to stop $service failed. Retrying in $RetryDelaySeconds seconds..."
             Start-Sleep -Seconds $RetryDelaySeconds
         }
 
@@ -253,27 +269,49 @@ function Clear-WindowsSearch {
 	
 }
 
-Function Remove-SubFile
-{
-    param([Parameter(Mandatory = $true)][string]$path)
+Function Remove-SubFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
 
-    if ((Test-Path "$path"))
-    {
-        Get-ChildItem -Path "$path" -Force -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-		Write-Log "SubFile removed $path"
+    if (Test-Path -Path $Path) {
+        try {
+            Get-ChildItem -Path $Path -Force -Recurse -ErrorAction SilentlyContinue |
+                Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+            Write-Log "Deleted contents of: $Path"
+        }
+        catch {
+            Write-Log "Failed to delete contents of: $Path. Error: $_" "Yellow"
+        }
+    }
+    else {
+        Write-Log "Path not found (skipped): $Path" "DarkGray"
     }
 }
 
-Function Remove-File
-{
-    param([Parameter(Mandatory = $true)][string]$path)
 
-    if ((Test-Path "$path"))
-    {
-        Remove-Item -Path "$path" -Recurse -Force -ErrorAction SilentlyContinue
-		Write-Log "file removed $path"
+Function Remove-File {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (Test-Path -Path $Path) {
+        try {
+            Remove-Item -Path $Path -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Log "Removed: $Path"
+        }
+        catch {
+            Write-Log "Failed to remove: $Path. Error: $_" "Yellow"
+        }
+    }
+    else {
+        Write-Log "File not found (skipped): $Path" "DarkGray"
     }
 }
+
 
 #------------------------------------------------------------------#
 #- Clear-ChromeTemplate                                            #
@@ -436,23 +474,34 @@ Function Clear-MicrosoftOfficeCacheFiles
     }
 }
 
-Function Clear-NotepadPP
-{
-    param([string]$user = $env:USERNAME)
-	
-    if ((Test-Path "C:\users\$user\AppData\Roaming\Notepad++"))
-    {
-		$possibleCachePaths = @("backup")
-		ForEach ($cachePath in $possibleCachePaths) {
-			Remove-SubFile "$path\$cachePath"
-		}
-		$possibleCacheFiles = @("config.xml", "session.xml")
-		ForEach ($cacheFile in $possibleCacheFiles) {
-			Remove-File "$path\$cacheFile"
-		}
+Function Clear-NotepadPP {
+    param(
+        [string]$User = $env:USERNAME
+    )
+
+    $path = "C:\Users\$User\AppData\Roaming\Notepad++"
+
+    if (Test-Path -Path $path) {
+
+        Write-Log "Clearing Notepad++ cache for user: $User"
+
+        $possibleCachePaths = @("backup")
+        foreach ($cachePath in $possibleCachePaths) {
+            Remove-SubFile (Join-Path $path $cachePath)
+        }
+
+        $possibleCacheFiles = @("config.xml", "session.xml")
+        foreach ($cacheFile in $possibleCacheFiles) {
+            Remove-File (Join-Path $path $cacheFile)
+        }
+
+        Write-Log "Notepad++ cleanup completed for user: $User"
     }
-	
+    else {
+        Write-Log "Notepad++ not found for user: $User (skipped)" "DarkGray"
+    }
 }
+
 
 function Clear-DuplicateOldDrivers {
 	
@@ -545,14 +594,13 @@ function Clear-DuplicateOldDrivers {
 			
 			try {
 				Start-Process pnputil.exe -ArgumentList "/delete-driver $Name" -Wait
-				Write-Host "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
 				Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
 			} catch {
 				Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr={$Entr}. Error: $_"
 			}
 		}
 	} else {
-        Write-Host "No old or duplicate drivers to remove."
+        Write-Log "No old or duplicate drivers to remove."
     }
 
 }
@@ -611,7 +659,7 @@ Function Araid-install-package {
 	
 	Clear-Host
 	
-	Write-Host "install started."
+	Write-Log "install started."
 	Write-Host "Please wait..."
 	
 	Check-winget
@@ -640,14 +688,14 @@ Function Araid-install-package {
 	
     Remove-Item -Path $FilePath -Force
 
-	Write-Host "Install done."
+	Write-Log "Install done."
 }
 
 function Araid-upgrade-package {
 
     Clear-Host
 	
-    Write-Host "Upgrade started."
+    Write-Log "Upgrade started."
     Write-Host "Please wait..."
 
     Check-winget
@@ -688,7 +736,7 @@ function Araid-upgrade-package {
     try {
 		Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod
         Start-Process cmd.exe -ArgumentList "/c winget upgrade --include-unknown --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
-        Write-Host "Upgrade done."
+        Write-Log "Upgrade done."
     } catch {
         Write-Log "An error occurred during the upgrade: $_"
     }
@@ -699,7 +747,7 @@ function Araid-LegacyRepair {
 	
 	Clear-Host
 	
-	Write-Host "Legacy repair started. Recommend to run at least 2 times."
+	Write-Log "Legacy repair started. Recommend to run at least 2 times."
 	Write-Host "Please wait..."
 
 	# Disable Automatic Restart
@@ -717,7 +765,7 @@ function Araid-LegacyRepair {
 	$sfcscanlog = "$env:systemroot\Logs\araid\scanlog.txt"
 	Remove-File "$sfcscanlog"
 	  
-	Write-Host "Repair started"
+	Write-Log "Repair started"
 	Write-Log "Started Dism Restore Health"
 	Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
 
@@ -744,10 +792,9 @@ function Araid-LegacyRepair {
 		try {
 			Select-String -Path $sourceFile -Pattern $pattern | Out-File -FilePath $destinationFile
 			if ((Get-Content -Path $destinationFile).Length -gt 0) {
-                Write-Host "There are unrepairable files detected by SFC."
                 Write-Log "There are unrepairable files detected by SFC."
             } else {
-                Write-Host "No unrepairable files detected by SFC."
+                Write-Log "No unrepairable files detected by SFC."
             }
 		}
 		catch {
@@ -808,10 +855,10 @@ Function Araid-CleanAndRestart {
 
 	Clear-Host
 
-	Write-Host "Cleaning started."
+	Write-Log "Cleaning started."
 	Write-Host "Please wait..."
 
-	Write-Host "Check if NahimicService exists"
+	Write-Log "Check if NahimicService exists"
 	$service = Get-Service -Name "NahimicService" -ErrorAction SilentlyContinue
 
 	if ($service) {
@@ -1047,14 +1094,14 @@ Function Araid-CleanAndRestart {
 			}
 		}
 	} else {
-		Write-Host "No Unknown devices to remove."
+		Write-Log "No Unknown devices to remove."
 	}
 	
 	Clear-UserCacheFiles
 	Clear-GlobalWindowsCache
 	Clear-DuplicateOldDrivers
 	
-	Write-Host "Clear all event logs"
+	Write-Log "Clear all event logs"
 	Get-EventLog -LogName * | ForEach { Clear-EventLog $_.Log }
 	Write-Log "Clear all event logs"
 	
@@ -1112,7 +1159,7 @@ function kill-necessary {
 		Stop-Services -service $svc -RetryCount 3 -RetryDelaySeconds 5
 	}
 	
-	Write-Host "Kill necessary process done."
+	Write-Log "Kill necessary process done."
 	
 }
 
@@ -1260,49 +1307,42 @@ function Move-Folder {
 
     # Handle the pagefile
     if (Move-Pagefile -NewPagefileDrive "D:\") {
-        Write-Host "Pagefile moved successfully. Please reboot the system."
+        Write-Log "Pagefile moved successfully. Please reboot the system."
     } else {
-        Write-Host "Pagefile move failed. Check the error message."
+        Write-Log "Pagefile move failed. Check the error message."
     }
 
-    Write-Host "Move folder done."
+    Write-Log "Move folder done."
 }
 
 Function OEMofficeActivation {
 	
 	Clear-Host
 
-	Write-Host "Starting OEM Office Activation..."
 	Write-Log "Starting OEM Office Activation..."
 	Write-Host "Please wait..."
 	
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
-	Write-Host "Clear console history"
 	Remove-File "$ConsoleHistory"
 		
 	# Check Windows activation
     if (Is-WindowsActivated) {
         Write-Log "Windows is already activated."
-        Write-Host "Windows is already activated."
 		$oem = $true
     } else {
         Write-Log "Windows is not activated. Installing OEM SLP key from BIOS..."
-        Write-Host "Windows is not activated. Installing OEM SLP key from BIOS..."
         $OEMKey = (Get-WmiObject -Query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
 
         if ($OEMKey) {
             Write-Log "Detected OEM SLP Key: $OEMKey"
-            Write-Host "Detected OEM SLP Key: $OEMKey"
             Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ipk $OEMKey" -Wait
             Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ato" -Wait
             Write-Log "Windows activation attempted."
-            Write-Host "Windows activation attempted."
 			$oem = $true
         } else {
             Write-Log "No OEM SLP key found in BIOS. Activation skipped."
-            Write-Host "No OEM SLP key found in BIOS. Activation skipped."
 			$oem = $false
         }
     }
@@ -1313,10 +1353,8 @@ Function OEMofficeActivation {
 		Set-OEMRegistry
 		Activate-Office
 		Write-Log "OEM Office Activation Completed."
-		Write-Host "OEM Office Activation Completed."
 	} else {
 		Write-Log "Non-OEM system detected. Office activation skipped."
-		Write-Host "Non-OEM system detected. Office activation skipped."
 	}
 	
 	# Wait for user confirmation
