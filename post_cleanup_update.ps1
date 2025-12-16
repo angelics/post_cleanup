@@ -757,7 +757,7 @@ function Araid-LegacyRepair {
 	Write-Log "Clear console history"
 	Remove-File "$ConsoleHistory"
 	
-	$sfcscanlog = "$env:systemroot\Logs\araid\scanlog.txt"
+	$sfcscanlog = "$env:systemroot\araid\scanlog.txt"
 	Remove-File "$sfcscanlog"
 	  
 	Write-Log "Repair started"
@@ -780,7 +780,7 @@ function Araid-LegacyRepair {
 	
 	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
 	$timestamp = Get-Date -Format "yyMMddHHmmss"
-	$destinationFile = "$env:systemroot\Logs\araid\{$timestamp}_SFCResults-Unrepairables.log"
+	$destinationFile = "$env:systemroot\araid\{$timestamp}_SFCResults-Unrepairables.log"
 	$pattern = "\[SR\] Cannot repair member file"
 
 	if (Test-Path -Path $sourceFile) {
