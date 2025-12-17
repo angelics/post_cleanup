@@ -785,8 +785,8 @@ function Araid-LegacyRepair {
 		Write-Log "CBS.log not found, unable to analyze SFC results." "Yellow"
 	}
 	
-	Write-Log "re-register all AppX packages for all users"
-	Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
+	#Write-Log "re-register all AppX packages for all users"
+	#Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
 	Clear-Host
 	Write-Log "Chkdsk on reboot"
     Start-Process cmd.exe -ArgumentList "/c echo y | chkdsk $env:homedrive /f" -Wait -NoNewWindow
