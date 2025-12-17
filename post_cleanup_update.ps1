@@ -215,7 +215,7 @@ function Stop-Services {
             Start-Sleep -Seconds $RetryDelaySeconds
 
         } catch {
-            Write-Log "Stop attempt $attempt failed for $Service: $_" "Yellow"
+            Write-Log "Stop attempt $attempt failed for ${Service}: $_" "Yellow"
         }
     }
 }
@@ -807,7 +807,7 @@ function Remove-RegistryPathAndLog {
 			Remove-Item -Path $RegistryPath -Recurse -Force -ErrorAction Stop
 			Write-Log "Removed registry path $RegistryPath"
 		} catch {
-			Write-Log "Failed to remove registry path $RegistryPath: $_" "Yellow"
+			Write-Log "Failed to remove registry path ${RegistryPath}: $_" "Yellow"
 		}
     } else {
         Write-Log "Registry path $RegistryPath does not exist."
