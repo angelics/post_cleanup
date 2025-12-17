@@ -31,14 +31,23 @@ Function Write-Log {
     }
 }
 
+$ErrorActionPreference = "Stop"
+trap {
+    Write-Log "Fatal error: $_" "Red"
+    exit 1
+}
+
 # Ensure log directory exists
 if (!(Test-Path $logDirectory)) {
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 }
 
-# Reset log file BEFORE Write-Log is used
-if (Test-Path $log) {
-    Remove-Item -Path $log -Force
+# Reset log file once
+Remove-Item -Path $log -Force -ErrorAction SilentlyContinue
+
+Write-Log "System Information:"
+systeminfo | ForEach-Object {
+    Add-Content -Path $log -Value "    $_"
 }
 
 Function Set-RegistryProperty {
@@ -183,58 +192,34 @@ Function Clear-MicrosoftDefenderAntivirus
 }
 
 function Stop-Services {
-    
     param (
-        [Parameter(Mandatory = $true)][string]$service,
+        [Parameter(Mandatory)]
+        [string]$Service,
+
         [int]$RetryCount = 3,
         [int]$RetryDelaySeconds = 5
     )
 
-    $attempt = 0
-    while ($attempt -lt $RetryCount) {
+    for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
         try {
-            $serviceStatus = (Get-Service -Name $service).Status
+            $svc = Get-Service -Name $Service -ErrorAction Stop
 
-            if ($serviceStatus -eq 'Running') {
-                Write-Log "Attempting to stop $service... (Attempt $($attempt + 1))"
-
-                # Get and stop dependent services first
-                $dependentServices = Get-Service -Name $service | Select-Object -ExpandProperty DependentServices
-                foreach ($dep in $dependentServices) {
-                    if ($dep.Status -eq 'Running') {
-                        Write-Log "Stopping dependent service: $($dep.Name)"
-                        Stop-Service -Name $dep.Name -Force
-                        # Optionally, you can add a loop to retry stopping the dependent service as well.
-                    }
-                }
-
-                # Stop the main service
-                Stop-Service -Name $service -Force
-
-                # Check if the service is stopped after the attempt
-                if ((Get-Service -Name $service).Status -eq 'Stopped') {
-                    Write-Log "$service stopped successfully."
-                    return  # Exit the function if successful
-                }
-            } else {
-                Write-Log "$service is already stopped."
-                return  # Exit the function if the service is not running
+            if ($svc.Status -eq 'Stopped') {
+                Write-Log "$Service is already stopped."
+                return
             }
 
-        } catch {
-            Write-Log "Attempt $($attempt + 1) to stop $service failed. Retrying in $RetryDelaySeconds seconds..."
+            Write-Log "Requesting stop for $Service (attempt $attempt)"
+            Stop-Service -Name $Service -ErrorAction Stop
+
             Start-Sleep -Seconds $RetryDelaySeconds
+
+        } catch {
+            Write-Log "Stop attempt $attempt failed for $Service: $_" "Yellow"
         }
-
-        $attempt++
-    }
-
-    # After retry attempts, throw an error if the service is still running
-    if ((Get-Service -Name $service).Status -eq 'Running') {
-        Write-Log "Failed to stop $service after $RetryCount attempts." "Yellow"
-		return
     }
 }
+
 
 function Clear-WindowsUpdateCache {
 	$services = @(
@@ -245,7 +230,7 @@ function Clear-WindowsUpdateCache {
     )
 	
 	foreach ($svc in $services) {
-		Stop-Services -service $svc -RetryCount 3 -RetryDelaySeconds 5
+		Stop-ServiceSafely -ServiceName $svc -TimeoutSeconds 120
 	}
 	
 	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
@@ -257,8 +242,8 @@ function Clear-WindowsSearch {
 	
 	#$env:WINDIR = C:\Windows
 	
-    Stop-Services -service "WSearch" -RetryCount 3 -RetryDelaySeconds 5
-
+	Stop-ServiceSafely -ServiceName "WSearch" -TimeoutSeconds 120
+	
 	# Delete Windows Search cache files
 	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search"
 	Write-Log "Deleted Windows Search cache files"
@@ -756,9 +741,6 @@ function Araid-LegacyRepair {
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
 	Remove-File "$ConsoleHistory"
-	
-	$sfcscanlog = "$env:systemroot\araid\scanlog.txt"
-	Remove-File "$sfcscanlog"
 	  
 	Write-Log "Repair started"
 	Write-Log "Started Dism Restore Health"
@@ -778,23 +760,29 @@ function Araid-LegacyRepair {
 <# 	Stop-Job -Id $job.Id
 	Remove-Job -Id $job.Id #>
 	
-	$sourceFile = "$env:systemroot\Logs\CBS\CBS.log"
-	$timestamp = Get-Date -Format "yyMMddHHmmss"
-	$destinationFile = "$env:systemroot\araid\{$timestamp}_SFCResults-Unrepairables.log"
-	$pattern = "\[SR\] Cannot repair member file"
+	$sourceFile = "$env:SystemRoot\Logs\CBS\CBS.log"
+	$timestamp  = Get-Date -Format "yyMMddHHmmss"
+	$pattern    = "\[SR\] Cannot repair member file"
 
 	if (Test-Path -Path $sourceFile) {
 		try {
-			Select-String -Path $sourceFile -Pattern $pattern | Out-File -FilePath $destinationFile
-			if ((Get-Content -Path $destinationFile).Length -gt 0) {
-                Write-Log "There are unrepairable files detected by SFC."
-            } else {
-                Write-Log "No unrepairable files detected by SFC."
-            }
+			$unrepairables = Select-String -Path $sourceFile -Pattern $pattern
+
+			if ($unrepairables) {
+				$destinationFile = "$env:SystemRoot\araid\${timestamp}_SFCResults-Unrepairables.log"
+				$unrepairables | Out-File -FilePath $destinationFile -Encoding UTF8
+				Write-Log "Unrepairable files detected by SFC. Log created: $destinationFile" "Yellow"
+			}
+			else {
+				Write-Log "No unrepairable files detected by SFC."
+			}
 		}
 		catch {
-			Write-Log "An error occurred: $_"
+			Write-Log "Error while processing SFC results: $_" "Red"
 		}
+	}
+	else {
+		Write-Log "CBS.log not found, unable to analyze SFC results." "Yellow"
 	}
 	
 	Write-Log "re-register all AppX packages for all users"
@@ -815,8 +803,12 @@ function Remove-RegistryPathAndLog {
     # Check if the registry key path exists
     if (Test-Path -Path $RegistryPath) {
         # Remove the registry key
-        Remove-Item -Path $RegistryPath -Recurse -Force
-        Write-Log ("Removed registry path $RegistryPath.")
+        try {
+			Remove-Item -Path $RegistryPath -Recurse -Force -ErrorAction Stop
+			Write-Log "Removed registry path $RegistryPath"
+		} catch {
+			Write-Log "Failed to remove registry path $RegistryPath: $_" "Yellow"
+		}
     } else {
         Write-Log "Registry path $RegistryPath does not exist."
     }
@@ -1124,9 +1116,9 @@ Function Araid-CleanAndRestart {
 	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	
 	Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
-	Write-log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
+	Write-Log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
 	Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force
-	Write-log "Set-SmbClientConfiguration -EnableInsecureGuestLogons true -Force"
+	Write-Log "Set-SmbClientConfiguration -EnableInsecureGuestLogons true -Force"
 	
 	# Wait for user confirmation
 	Read-Host -Prompt "Press Enter to restart the computer..."
@@ -1198,7 +1190,7 @@ Function Close-OfficeApps {
         $proc = Get-Process -Name $app -ErrorAction SilentlyContinue
         if ($proc) {
             Stop-Process -Name $app -Force -ErrorAction SilentlyContinue
-            Write-log "Closed $app"
+            Write-Log "Closed $app"
         }
     }
 }
@@ -1211,7 +1203,7 @@ Function Set-OEMRegistry {
     foreach ($p in $paths) {
         if (!(Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
         Set-ItemProperty -Path $p -Name OOBEMode -Value "OEMTA"
-        Write-log "Set OOBEMode at $p"
+        Write-Log "Set OOBEMode at $p"
     }
 }
 
@@ -1238,7 +1230,7 @@ Function Activate-Office {
         $ospp = Join-Path $p "OSPP.VBS"
         if (Test-Path $ospp) {
             cscript.exe $ospp /act | Out-Null
-            Write-log "Triggered Office activation at $p"
+            Write-Log "Triggered Office activation at $p"
         }
     }
 }
@@ -1303,7 +1295,7 @@ function Move-Folder {
             try {
 				# Stop the associated service if needed
 				if (-not [string]::IsNullOrEmpty($Service)) {
-					Stop-Services -service $Service -RetryCount 3 -RetryDelaySeconds 5
+					Stop-ServiceSafely -ServiceName $Service -TimeoutSeconds 120
 				}
 				
                 $folderName = [System.IO.Path]::GetFileName($source.TrimEnd('\'))
@@ -1324,13 +1316,13 @@ function Move-Folder {
             }
         }
     }
-
-    # Handle the pagefile
-    if (Move-Pagefile -Drive "D:") {
-        Write-Log "Pagefile moved successfully. Please reboot the system."
-    } else {
-        Write-Log "Pagefile move failed. Check the error message."
-    }
+	
+	if (Test-Path "D:\") {
+		Move-Pagefile -Drive "D:"
+		Write-Log "Pagefile moved successfully. Please reboot the system."
+	} else {
+		Write-Log "Drive D: not found. Pagefile move skipped." "Yellow"
+	}
 
     Write-Log "Move folder done."
 }
