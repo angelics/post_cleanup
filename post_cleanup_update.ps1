@@ -1162,8 +1162,8 @@ function Stop-ServiceSafely {
         $elapsed += 2
     }
 
-    Write-Log "Timeout waiting for $ServiceName to stop" "Yellow"
-    return $false
+	Write-Log "Service $ServiceName cannot be safely stopped. Skipping to avoid system instability." "Yellow"
+	return $false
 }
 
 function kill-necessary {
@@ -1184,7 +1184,6 @@ function kill-necessary {
 
     # Order matters (least risky → most risky)
     $services = @(
-        "AppIDSvc",
         "bits",
         "dosvc",
         "wuauserv"
