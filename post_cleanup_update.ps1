@@ -599,42 +599,70 @@ function Get-WingetVersion {
 }
 
 function Check-Winget {
-	
+
     if ($global:wingetChecked) {
         return
     }
-    
-    # Check if winget is installed
-    $wingetInstalled = Get-Command winget -ErrorAction SilentlyContinue
-    if ($wingetInstalled) {
+
+    Write-Log "Checking winget installation"
+
+    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+    if ($wingetCmd) {
         $wingetVersion = Get-WingetVersion
+        Write-Log "Winget detected. Version: $wingetVersion"
     } else {
-        $wingetVersion = [version]"0.0" # Dummy version for non-installed case
+        $wingetVersion = [version]"0.0"
+        Write-Log "Winget not found"
     }
 
-    # Define the minimum required version
     $minVersion = [version]"1.6"
-    
-    # Install or upgrade winget if necessary
+
     if ($wingetVersion -lt $minVersion) {
-		$temp = "$env:TEMP\winget"
-		New-Item -ItemType Directory -Path $temp -Force | Out-Null
-        # Install winget
-		# https://github.com/microsoft/winget-cli/issues/1861#issuecomment-1634057674
-        IWR -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" -OutFile "$temp\Windows10_PreinstallKit.zip"
-        Expand-Archive -Path "$temp\Windows10_PreinstallKit.zip" -DestinationPath "$temp\Windows10_PreinstallKit" -Force
-        Move-Item -Path "$temp\Windows10_PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Destination . -Force
-        Remove-Item -Path "$temp\Windows10_PreinstallKit.zip" -Force
-        Remove-Item -Path "$temp\Windows10_PreinstallKit" -Recurse -Force
-        Add-AppxPackage -Path "$temp\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -ForceApplicationShutdown
-        Remove-Item -Path "$temp\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" -Force
-        Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
-        Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
+
+        Write-Log "Winget upgrade/install required (minimum $minVersion)" "Yellow"
+
+        $temp = Join-Path $env:TEMP "winget"
+        New-Item -ItemType Directory -Path $temp -Force | Out-Null
+
+        try {
+            Write-Log "Downloading Windows Terminal PreinstallKit"
+            Invoke-WebRequest `
+                -Uri "https://github.com/microsoft/terminal/releases/download/v1.19.10302.0/Microsoft.WindowsTerminal_1.19.10302.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip" `
+                -OutFile "$temp\PreinstallKit.zip"
+
+            Expand-Archive "$temp\PreinstallKit.zip" "$temp\PreinstallKit" -Force
+
+            $uiXaml = "$temp\Microsoft.UI.Xaml.appx"
+            Move-Item `
+                "$temp\PreinstallKit\Microsoft.UI.Xaml.2.8_8.2310.30001.0_x64__8wekyb3d8bbwe.appx" `
+                $uiXaml -Force
+
+            Write-Log "Installing Microsoft.UI.Xaml"
+            Add-AppxPackage -Path $uiXaml -ForceApplicationShutdown
+
+            Write-Log "Installing Microsoft.VCLibs"
+            Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
+
+            Write-Log "Installing winget"
+            Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
+
+        } catch {
+            Write-Log "Winget installation failed: $_" "Red"
+            return
+        } finally {
+            Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
-		
+
+    # Enable winget setting only if winget exists
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Log "Configuring winget settings"
+        winget settings --enable BypassCertificatePinningForMicrosoftStore 2>$null
+    } else {
+        Write-Log "Winget not available after install attempt" "Yellow"
+    }
+
     $global:wingetChecked = $true
-	
-	winget settings --enable BypassCertificatePinningForMicrosoftStore
 }
 
 Function Araid-install-package {
