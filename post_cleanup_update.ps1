@@ -1127,31 +1127,44 @@ Function Araid-CleanAndRestart {
 
 function Stop-ServiceSafely {
     param(
-        [Parameter(Mandatory)][string]$ServiceName,
+        [Parameter(Mandatory)]
+        [string]$ServiceName,
+
         [int]$TimeoutSeconds = 90
     )
 
-    Write-Log "Stopping service: $ServiceName"
+    $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if (-not $svc) {
+        Write-Log "Service $ServiceName not found" "Yellow"
+        return $true
+    }
 
+    # Stop dependents first (gracefully)
+    foreach ($dep in $svc.DependentServices) {
+        if ($dep.Status -eq 'Running') {
+            Write-Log "Stopping dependent service: $($dep.Name)"
+            Stop-ServiceSafely -ServiceName $dep.Name -TimeoutSeconds 60
+        }
+    }
+
+    Write-Log "Requesting stop for $ServiceName"
     Stop-Services -service $ServiceName -RetryCount 3 -RetryDelaySeconds 5
 
+    # Wait for stop
     $elapsed = 0
     while ($elapsed -lt $TimeoutSeconds) {
         $status = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
-
         if ($status -eq 'Stopped') {
             Write-Log "$ServiceName fully stopped"
             return $true
         }
-
         Start-Sleep -Seconds 2
         $elapsed += 2
     }
 
-    Write-Log "$ServiceName did not stop within $TimeoutSeconds seconds" "Yellow"
+    Write-Log "Timeout waiting for $ServiceName to stop" "Yellow"
     return $false
 }
-
 
 function kill-necessary {
 
