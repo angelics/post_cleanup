@@ -633,6 +633,8 @@ function Check-Winget {
     }
 		
     $global:wingetChecked = $true
+	
+	winget settings --enable BypassCertificatePinningForMicrosoftStore
 }
 
 Function Araid-install-package {
