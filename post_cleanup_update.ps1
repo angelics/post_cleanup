@@ -191,38 +191,9 @@ Function Clear-MicrosoftDefenderAntivirus
     Remove-File "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
 }
 
-function Stop-Services {
-    param (
-        [Parameter(Mandatory)]
-        [string]$Service,
-
-        [int]$RetryCount = 3,
-        [int]$RetryDelaySeconds = 5
-    )
-
-    for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
-        try {
-            $svc = Get-Service -Name $Service -ErrorAction Stop
-
-            if ($svc.Status -eq 'Stopped') {
-                Write-Log "$Service is already stopped."
-                return
-            }
-
-            Write-Log "Requesting stop for $Service (attempt $attempt)"
-            Stop-Service -Name $Service -ErrorAction Stop
-
-            Start-Sleep -Seconds $RetryDelaySeconds
-
-        } catch {
-            Write-Log "Stop attempt $attempt failed for ${Service}: $_" "Yellow"
-        }
-    }
-}
-
-
 function Clear-WindowsUpdateCache {
 	$services = @(
+        "UsoSvc",             # Update Orchestrator
         "wuauserv",           # Windows Update
         "bits",               # Background Intelligent Transfer Service
         "dosvc",              # Delivery Optimization
@@ -230,7 +201,7 @@ function Clear-WindowsUpdateCache {
     )
 	
 	foreach ($svc in $services) {
-		Stop-ServiceSafely -ServiceName $svc -TimeoutSeconds 120
+		Ensure-ServiceStopped -ServiceName $svc
 	}
 	
 	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
@@ -1160,16 +1131,23 @@ function Stop-ServiceSafely {
         [Parameter(Mandatory)]
         [string]$ServiceName,
 
-        [int]$TimeoutSeconds = 90
+        [int]$TimeoutSeconds = 90,
+        [int]$RetryCount = 3,
+        [int]$RetryDelaySeconds = 5
     )
 
     $svc = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if (-not $svc) {
-        Write-Log "Service $ServiceName not found" "Yellow"
+        Write-Log "Service $ServiceName not found (skipped)" "DarkGray"
         return $true
     }
 
-    # Stop dependents first (gracefully)
+    if ($svc.Status -eq 'Stopped') {
+        Write-Log "Service $ServiceName already stopped" "DarkGray"
+        return $true
+    }
+
+    # Stop dependent services first
     foreach ($dep in $svc.DependentServices) {
         if ($dep.Status -eq 'Running') {
             Write-Log "Stopping dependent service: $($dep.Name)"
@@ -1177,23 +1155,47 @@ function Stop-ServiceSafely {
         }
     }
 
-    Write-Log "Requesting stop for $ServiceName"
-    Stop-Services -service $ServiceName -RetryCount 3 -RetryDelaySeconds 5
+    for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
+        try {
+            Write-Log "Stopping $ServiceName (attempt $attempt)"
+            Stop-Service -Name $ServiceName -Force -ErrorAction Stop
+        } catch {
+            Write-Log "Stop attempt $attempt failed for ${ServiceName}: $_" "Yellow"
+        }
 
-    # Wait for stop
+        Start-Sleep -Seconds $RetryDelaySeconds
+
+        # Check status
+        $currentStatus = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
+        if ($currentStatus -eq 'Stopped') {
+            Write-Log "$ServiceName stopped successfully"
+            return $true
+        }
+    }
+
+    # Wait up to timeout
     $elapsed = 0
     while ($elapsed -lt $TimeoutSeconds) {
-        $status = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
-        if ($status -eq 'Stopped') {
-            Write-Log "$ServiceName fully stopped"
+        $currentStatus = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
+        if ($currentStatus -eq 'Stopped') {
+            Write-Log "$ServiceName fully stopped after wait"
             return $true
         }
         Start-Sleep -Seconds 2
         $elapsed += 2
     }
 
-	Write-Log "Service $ServiceName cannot be safely stopped. Skipping to avoid system instability." "Yellow"
-	return $false
+    Write-Log "Service $ServiceName could not be stopped safely (skipped)" "Yellow"
+    return $false
+}
+
+function Ensure-ServiceStopped {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ServiceName
+    )
+
+    Stop-ServiceSafely -ServiceName $ServiceName -TimeoutSeconds 120
 }
 
 function kill-necessary {
