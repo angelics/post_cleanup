@@ -1216,6 +1216,7 @@ function kill-necessary {
 
     # Order matters (least risky → most risky)
     $services = @(
+        "UsoSvc",
         "bits",
         "dosvc",
         "wuauserv"
