@@ -1379,6 +1379,17 @@ Function OEMofficeActivation {
 	Write-Log "Starting OEM Office Activation..."
 	Write-Host "Please wait..."
 	
+	# remove if exist
+	$ProvisionOffice = "$env:systemroot\araid\ProvisionOffice.ps1"
+	if (Test-Path -Path $ProvisionOffice) {
+		Write-Log "Remove ProvisionOffice.ps1"
+		Remove-File "$ProvisionOffice"
+	}
+	
+	Try {
+        Unregister-ScheduledTask -TaskName "OEMOfficeProvision" -Confirm:$false -ErrorAction SilentlyContinue
+    } catch {}
+	
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
@@ -1569,6 +1580,8 @@ $button6.Text = "OEMofficeActivation"
 $button6.Location = New-Object System.Drawing.Point(50, 330)
 $button6.Size = New-Object System.Drawing.Size(190, 30)
 $button6.Add_Click({
+	$allowClose = $true
+	$Form.Close()
 	OEMofficeActivation
 })
 
