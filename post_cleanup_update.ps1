@@ -1052,6 +1052,7 @@ Function Araid-CleanAndRestart {
 		"$env:systemroot\Web\Wallpaper\img0.jpg",
 		"$env:systemroot\Web\Wallpaper\Surface\Surface.jpg",
 		"$env:systemroot\Web\Wallpaper\MateBook\01.jpg",
+		"$env:systemroot\Web\Wallpaper\MateBook\Wallpaper01.jpg",
 		"$env:systemroot\Web\Wallpaper\Windows\img0.jpg"
 	)
 
