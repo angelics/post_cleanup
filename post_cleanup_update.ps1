@@ -33,8 +33,8 @@ Function Write-Log {
 
 $ErrorActionPreference = "Stop"
 trap {
-    Write-Log "Fatal error: $_" "Red"
-    exit 1
+    Write-Log "Unhandled error (continuing): $_" "Red"
+    continue
 }
 
 # Ensure log directory exists
@@ -222,23 +222,40 @@ function Clear-WindowsSearch {
 }
 
 Function Remove-SubFile {
-    param([string]$Path)
+    param([Parameter(Mandatory)][string]$Path)
 
-    if (-not (Test-Path $Path)) {
-        Write-Log "Path not found (skipped): $Path" "DarkGray"
+    # Resolve wildcard paths safely
+    $targets = @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue)
+    if (-not $targets -or $targets.Count -eq 0) {
+        # If LiteralPath fails, try wildcard expansion
+        $targets = @(Get-ChildItem -Path $Path -Force -ErrorAction SilentlyContinue)
+    }
+
+    if (-not $targets -or $targets.Count -eq 0) {
+        Write-Log "Nothing found (skipped): $Path" "DarkGray"
         return
     }
 
-    try {
-		Get-ChildItem -Path $Path -Force -ErrorAction SilentlyContinue |
-			Where-Object { -not $_.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint) } |
-			Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+    $deleted = 0
+    $failed  = 0
 
-        Write-Log "Deleted contents of: $Path"
+    foreach ($t in $targets) {
+        # Never follow reparse points (junctions/symlinks)
+        if ($t.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            Write-Log "Skipped reparse point: $($t.FullName)" "DarkGray"
+            continue
+        }
+
+        try {
+            Remove-Item -LiteralPath $t.FullName -Force -Recurse -ErrorAction Stop
+            $deleted++
+        } catch {
+            $failed++
+            Write-Log "Failed to delete: $($t.FullName). Error: $_" "Yellow"
+        }
     }
-    catch {
-        Write-Log "Failed to delete contents of: $Path. Error: $_" "Yellow"
-    }
+
+    Write-Log "Delete result for [$Path] -> Deleted=$deleted Failed=$failed"
 }
 
 Function Remove-File {
@@ -846,24 +863,7 @@ Function Araid-CleanAndRestart {
 	Write-Log "Cleaning started."
 	Write-Host "Please wait..."
 
-	Write-Log "Check if NahimicService exists"
-	$service = Get-Service -Name "NahimicService" -ErrorAction SilentlyContinue
-
-	if ($service) {
-        if ($service.Status -eq 'Running') {
-            Write-Log "Stopping NahimicService..."
-            Stop-Service -Name "NahimicService" -Force -ErrorAction SilentlyContinue
-        }
-
-        Write-Log "Setting NahimicService to Disabled startup..."
-        Set-Service -Name "NahimicService" -StartupType Disabled -ErrorAction SilentlyContinue
-
-        # Confirm changes
-        $updated = Get-Service -Name "NahimicService"
-        Write-Log "Status: $($updated.Status), StartupType: Disabled"
-	} else {
-		Write-Log "NahimicService does not exist."
-	}
+	Disable-Services
 
 	# Clear recycle bin
 	Clear-RecycleBin -Force -ErrorAction SilentlyContinue
@@ -1197,6 +1197,64 @@ function Ensure-ServiceStopped {
     )
 
     Stop-ServiceSafely -ServiceName $ServiceName -TimeoutSeconds 120
+}
+
+function Disable-Services {
+
+    $services = @(
+        # ---- Telemetry ----
+        "DiagTrack",                 # Connected User Experiences and Telemetry
+        "dmwappushservice",          # WAP Push telemetry service
+
+        # ---- Rare Windows Features ----
+        "Fax",                       # Fax service
+        "RetailDemo",                # Store demo mode
+        "AssignedAccessManagerSvc",  # Windows kiosk mode
+        "wisvc",                     # Windows Insider service
+
+        # ---- Security / Enterprise ----
+        "RemoteRegistry",            # Remote registry editing
+
+        # ---- Smart Card ----
+        "SCardSvr",                  # Smart card authentication
+        "ScDeviceEnum",              # Smart card device detection
+        "SCPolicySvc",               # Smart card removal policy
+
+        # ---- OEM / Audio Enhancements ----
+        "NahimicService"             # OEM audio enhancement service
+    )
+
+    foreach ($svc in $services) {
+
+        Write-Log "Check if $svc exists"
+
+        $service = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        if (-not $service) {
+            Write-Log "$svc does not exist." "DarkGray"
+            continue
+        }
+
+        # Stop safely
+        if ($service.Status -eq 'Running') {
+            Write-Log "Stopping $svc..."
+            Stop-ServiceSafely -ServiceName $svc -TimeoutSeconds 120 | Out-Null
+        }
+
+        # Disable startup
+        try {
+            Write-Log "Setting $svc startup to Disabled..."
+            Set-Service -Name $svc -StartupType Disabled -ErrorAction Stop
+        } catch {
+            Write-Log "Failed to set ${svc} StartupType to Disabled: $_" "Yellow"
+        }
+
+        # Confirm actual status + start mode
+        $updated = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        $w = Get-CimInstance Win32_Service -Filter "Name='$svc'" -ErrorAction SilentlyContinue
+
+        $startMode = if ($w) { $w.StartMode } else { "Unknown" }
+        Write-Log "Service: $svc | Status: $($updated.Status) | StartMode: $startMode"
+    }
 }
 
 function kill-necessary {
