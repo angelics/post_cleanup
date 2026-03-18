@@ -88,6 +88,7 @@ Function Clear-GlobalWindowsCache
     Remove-File "$env:homedrive\Intel"
     Remove-File "$env:homedrive\AMD"
     Remove-File "$env:homedrive\NVIDIA"
+    Remove-File "$env:homedrive\SWSetup"
 	Remove-SubFile "$env:ProgramData\USOShared\Logs" # Delivery Optimization Files
 	Remove-SubFile "$env:ProgramData\Microsoft\Windows\WER\Temp" # Delivery Optimization Files
 #1: Temporary Internet Files
