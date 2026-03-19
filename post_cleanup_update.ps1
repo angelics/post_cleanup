@@ -774,12 +774,12 @@ function Araid-LegacyRepair {
 	Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "while (\$true) { Receive-Job -Id $job.Id; Start-Sleep -Seconds 5 }" #>
 
 	Write-Log "Started System File Checker"
-	Start-Process cmd.exe -ArgumentList "/c sfc /scannow /OFFLOGFILE=$env:SystemRoot\araid\CBS.log" -Wait -NoNewWindow
+	Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
 
 <# 	Stop-Job -Id $job.Id
 	Remove-Job -Id $job.Id #>
 	
-	$sourceFile = "$env:SystemRoot\araid\CBS.log"
+	$sourceFile = "$env:SystemRoot\Logs\CBS\CBS.log"
 	$timestamp  = Get-Date -Format "yyMMddHHmmss"
 	$pattern    = "\[SR\] Cannot repair member file"
 
