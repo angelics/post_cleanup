@@ -2,7 +2,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $global:wingetChecked = $false
 
-$log = "$env:systemroot\araid\araid_post.log"
+$log = "$env:SystemRoot\araid\araid_post.log"
 
 # Get the directory of the original log file
 $logDirectory = Split-Path -Path $log -Parent
@@ -31,7 +31,7 @@ Function Write-Log {
     }
 }
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 trap {
     Write-Log "Unhandled error (continuing): $_" "Red"
     continue
@@ -74,21 +74,21 @@ Function Set-RegistryProperty {
 Function Clear-GlobalWindowsCache
 {
 	#$env:WINDIR = C:\Windows
-	#$env:systemroot = C:\Windows
+	#$env:SystemRoot = C:\Windows
 	#$env:homedrive = C:\
 	#$env:ProgramData = C:\ProgramData
-    Remove-SubFile "$env:systemroot\Temp"
-    Remove-SubFile "$env:systemroot\CbsTemp"
-    Remove-SubFile "$env:systemroot\SystemTemp"
-    Remove-SubFile "$env:systemroot\Minidump"
+    Remove-SubFile "$env:SystemRoot\Temp"
+    Remove-SubFile "$env:SystemRoot\CbsTemp"
+    Remove-SubFile "$env:SystemRoot\SystemTemp"
+    Remove-SubFile "$env:SystemRoot\Minidump"
     Remove-SubFile "$env:homedrive\Temp"
     Remove-SubFile "$env:homedrive\tmp"
-    Remove-SubFile "$env:systemroot\Prefetch"
-    Remove-SubFile "$env:systemroot\ServiceProfiles\NetworkService\Appdata\Local\Microsoft\DeliveryOptimization\Logs\*.etl"
-    Remove-File "$env:homedrive\Intel"
-    Remove-File "$env:homedrive\AMD"
-    Remove-File "$env:homedrive\NVIDIA"
-    Remove-File "$env:homedrive\SWSetup"
+    Remove-SubFile "$env:SystemRoot\Prefetch"
+    Remove-SubFile "$env:SystemRoot\ServiceProfiles\NetworkService\Appdata\Local\Microsoft\DeliveryOptimization\Logs\*.etl"
+    Remove-Path "$env:homedrive\Intel"
+    Remove-Path "$env:homedrive\AMD"
+    Remove-Path "$env:homedrive\NVIDIA"
+    Remove-Path "$env:homedrive\SWSetup"
 	Remove-SubFile "$env:ProgramData\USOShared\Logs" # Delivery Optimization Files
 	Remove-SubFile "$env:ProgramData\Microsoft\Windows\WER\Temp" # Delivery Optimization Files
 #1: Temporary Internet Files
@@ -104,26 +104,26 @@ Function Clear-GlobalWindowsCache
 #1024: InPrivate Filtering Data
 #2048: Cached feeds and WebSlices
 #4096: Preferences
-    Start-Process -FilePath "$env:systemroot\System32\rundll32.exe" -ArgumentList "InetCpl.cpl, ClearMyTracksByProcess 8191" -Wait -NoNewWindow
+    Start-Process -FilePath "$env:SystemRoot\System32\rundll32.exe" -ArgumentList "InetCpl.cpl, ClearMyTracksByProcess 8191" -Wait -NoNewWindow
 
 }
 
 Function Clear-UserCacheFiles
 {
     ForEach ($localUser in Get-ChildItem "C:\Users" -Directory |
-         Where-Object { $_.Name -notin @("Public","Default","Default User","All Users") } |
-         Select-Object -ExpandProperty Name)
+         Where-Object { $_.Name -notin @("Public","Default","Default User","All Users") })
 
     {
-		Clear-AcrobatCacheFiles $localUser
-        Clear-ChromeCacheFiles $localUser
-        Clear-DiscordCacheFiles $localUser
-        Clear-EdgeCacheFiles $localUser
-        Clear-FirefoxCacheFiles $localUser
-        Clear-MicrosoftOfficeCacheFiles $localUser
-        Clear-SteamCacheFiles $localUser
-        Clear-TeamsCacheFiles $localUser
-        Clear-NotepadPP $localUser
+		$ProfilePath = $localUser.FullName
+		Clear-AcrobatCacheFiles $ProfilePath
+        Clear-ChromeCacheFiles $ProfilePath
+        Clear-DiscordCacheFiles $ProfilePath
+        Clear-EdgeCacheFiles $ProfilePath
+        Clear-FirefoxCacheFiles $ProfilePath
+        Clear-MicrosoftOfficeCacheFiles $ProfilePath
+        Clear-SteamCacheFiles $ProfilePath
+        Clear-TeamsCacheFiles $ProfilePath
+        Clear-NotepadPP $ProfilePath
     }
 	
 	Clear-WindowsUserCacheFiles
@@ -188,8 +188,8 @@ Function Clear-MicrosoftDefenderAntivirus
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpenginedb.db"
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Support"
 	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Definition Updates\{GUID}"
-    Remove-File "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.bin"
-    Remove-File "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
+    Remove-Path "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.bin"
+    Remove-Path "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
 }
 
 function Clear-WindowsUpdateCache {
@@ -205,7 +205,7 @@ function Clear-WindowsUpdateCache {
 		Ensure-ServiceStopped -ServiceName $svc
 	}
 	
-	Remove-SubFile "$env:systemroot\SoftwareDistribution\Download"
+	Remove-SubFile "$env:SystemRoot\SoftwareDistribution\Download"
 	Write-Log "Windows Update cache files deleted."
 	
 }
@@ -259,7 +259,7 @@ Function Remove-SubFile {
     Write-Log "Delete result for [$Path] -> Deleted=$deleted Failed=$failed"
 }
 
-Function Remove-File {
+Function Remove-Path {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path
@@ -301,7 +301,7 @@ Function Clear-ChromeTemplate
 		$possibleCacheFiles = @("History", "History-journal", "Shortcuts", "Shortcuts-journal", "DIPS", "DIPS-journal", "Network Action Predictor", "Network Action Predictor-journal")
 		ForEach ($cacheFile in $possibleCacheFiles)
         {
-            Remove-File "$path\$cacheFile"
+            Remove-Path "$path\$cacheFile"
         }
     }
 }
@@ -325,7 +325,7 @@ Function Clear-MozillaTemplate {
             }
 			$possibleCacheFiles = @("places.sqlite-wal", "places.sqlite", "places.sqlite-shm", "prefs.js","SiteSecurityServiceState.txt", "formhistory.sqlite", "formhistory.sqlite-journal", "favicons.sqlite-wal", "cookies.sqlite")
             ForEach ($cacheFile in $possibleCacheFiles) {
-                Remove-File "$AppDataPath\$cacheFile"
+                Remove-Path "$AppDataPath\$cacheFile"
             }
         }
     }
@@ -336,9 +336,9 @@ Function Clear-MozillaTemplate {
 #------------------------------------------------------------------#
 Function Clear-ChromeCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    Clear-ChromeTemplate "C:\users\$user\AppData\Local\Google\Chrome\User Data\Default" "Browser Google Chrome"
-    Remove-SubFile "C:\users\$user\AppData\Local\Google\Chrome\User Data\SwReporter\"
+    param([string]$ProfilePath)
+    Clear-ChromeTemplate "$ProfilePath\AppData\Local\Google\Chrome\User Data\Default" "Browser Google Chrome"
+    Remove-SubFile "$ProfilePath\AppData\Local\Google\Chrome\User Data\SwReporter\"
 }
 
 #------------------------------------------------------------------#
@@ -346,10 +346,10 @@ Function Clear-ChromeCacheFiles
 #------------------------------------------------------------------#
 Function Clear-EdgeCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    Clear-ChromeTemplate "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default" "Browser Microsoft Edge"
-    Remove-File "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\*.TMP"
-    Remove-SubFile "C:\users\$user\AppData\Local\Microsoft\Edge\User Data\Default\CacheStorage"
+    param([string]$ProfilePath)
+    Clear-ChromeTemplate "$ProfilePath\AppData\Local\Microsoft\Edge\User Data\Default" "Browser Microsoft Edge"
+    Remove-Path "$ProfilePath\AppData\Local\Microsoft\Edge\User Data\Default\*.TMP"
+    Remove-SubFile "$ProfilePath\AppData\Local\Microsoft\Edge\User Data\Default\CacheStorage"
 }
 
 #------------------------------------------------------------------#
@@ -357,9 +357,9 @@ Function Clear-EdgeCacheFiles
 #------------------------------------------------------------------#
 Function Clear-FirefoxCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    Clear-MozillaTemplate "C:\users\$user\AppData\Local\Mozilla\Firefox\Profiles" "Browser Mozilla Firefox"
-    Clear-MozillaTemplate "C:\users\$user\AppData\Roaming\Mozilla\Firefox\Profiles" "Browser Mozilla Firefox"
+    param([string]$ProfilePath)
+    Clear-MozillaTemplate "$ProfilePath\AppData\Local\Mozilla\Firefox\Profiles" "Browser Mozilla Firefox"
+    Clear-MozillaTemplate "$ProfilePath\AppData\Roaming\Mozilla\Firefox\Profiles" "Browser Mozilla Firefox"
 }
 
 #------------------------------------------------------------------#
@@ -367,8 +367,8 @@ Function Clear-FirefoxCacheFiles
 #------------------------------------------------------------------#
 Function Clear-SteamCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    Clear-ChromeTemplate "C:\users\$user\AppData\Local\Steam\htmlcache" "Steam"
+    param([string]$ProfilePath)
+    Clear-ChromeTemplate "$ProfilePath\AppData\Local\Steam\htmlcache" "Steam"
 }
 
 #------------------------------------------------------------------#
@@ -376,8 +376,8 @@ Function Clear-SteamCacheFiles
 #------------------------------------------------------------------#
 Function Clear-DiscordCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    Clear-ChromeTemplate "C:\users\$user\AppData\Local\Discord" "Discord"
+    param([string]$ProfilePath)
+    Clear-ChromeTemplate "$ProfilePath\AppData\Local\Discord" "Discord"
 }
 
 #------------------------------------------------------------------#
@@ -385,8 +385,8 @@ Function Clear-DiscordCacheFiles
 #------------------------------------------------------------------#
 Function Clear-AcrobatCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    $DirName = "C:\users\$user\AppData\LocalLow\Adobe\Acrobat"
+    param([string]$ProfilePath)
+    $DirName = "$ProfilePath\AppData\LocalLow\Adobe\Acrobat"
     if ((Test-Path "$DirName"))
     {
         $possibleCachePaths = @("Cache", "ConnectorIcons")
@@ -405,18 +405,18 @@ Function Clear-AcrobatCacheFiles
 #------------------------------------------------------------------#
 Function Clear-TeamsCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    if ((Test-Path "C:\users\$user\AppData\Roaming\Microsoft\Teams"))
+    param([string]$ProfilePath)
+    $teamsAppDataPath = "$ProfilePath\AppData\Roaming\Microsoft\Teams"
+    if ((Test-Path $teamsAppDataPath))
     {
         $possibleCachePaths = @("application cache\cache", "blob_storage", "Cache", "Code Cache", "GPUCache", "logs", "tmp", "Service Worker\CacheStorage", "Service Worker\ScriptCache")
-        $teamsAppDataPath = "C:\users\$user\AppData\Roaming\Microsoft\Teams"
         ForEach ($cachePath in $possibleCachePaths)
         {
             Remove-SubFile "$teamsAppDataPath\$cachePath"
         }
     }
 	
-	Remove-SubFile "C:\users\$user\AppData\Local\Packages\MSTeams_*\LocalCache\Microsoft\MSTeams"
+	Remove-SubFile "$ProfilePath\AppData\Local\Packages\MSTeams_*\LocalCache\Microsoft\MSTeams"
 		
 }
 
@@ -425,32 +425,33 @@ Function Clear-TeamsCacheFiles
 #------------------------------------------------------------------#
 Function Clear-MicrosoftOfficeCacheFiles
 {
-    param([string]$user = $env:USERNAME)
-    if ((Test-Path "C:\users\$user\AppData\Local\Microsoft\Outlook"))
+    param([string]$ProfilePath)
+    $outlookDir = "$ProfilePath\AppData\Local\Microsoft\Outlook"
+    if ((Test-Path $outlookDir))
     {
-        Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Outlook\*.pst" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
-        Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Outlook\*.ost" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
-        Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Outlook\*" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
-        Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.MSO\*" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
-        Get-ChildItem "C:\users\$user\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Word\*" -Recurse -Force -ErrorAction SilentlyContinue |
-                remove-item -force -recurse -ErrorAction SilentlyContinue -ErrorAction SilentlyContinue
+        Get-ChildItem "$outlookDir\*.pst" -Recurse -Force -ErrorAction SilentlyContinue |
+                remove-item -force -recurse -ErrorAction SilentlyContinue
+        Get-ChildItem "$outlookDir\*.ost" -Recurse -Force -ErrorAction SilentlyContinue |
+                remove-item -force -recurse -ErrorAction SilentlyContinue
+        Get-ChildItem "$ProfilePath\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Outlook\*" -Recurse -Force -ErrorAction SilentlyContinue |
+                remove-item -force -recurse -ErrorAction SilentlyContinue
+        Get-ChildItem "$ProfilePath\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.MSO\*" -Recurse -Force -ErrorAction SilentlyContinue |
+                remove-item -force -recurse -ErrorAction SilentlyContinue
+        Get-ChildItem "$ProfilePath\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Word\*" -Recurse -Force -ErrorAction SilentlyContinue |
+                remove-item -force -recurse -ErrorAction SilentlyContinue
     }
 }
 
 Function Clear-NotepadPP {
     param(
-        [string]$User = $env:USERNAME
+        [string]$ProfilePath
     )
 
-    $path = "C:\Users\$User\AppData\Roaming\Notepad++"
+    $path = "$ProfilePath\AppData\Roaming\Notepad++"
 
     if (Test-Path -Path $path) {
 
-        Write-Log "Clearing Notepad++ cache for user: $User"
+        Write-Log "Clearing Notepad++ cache for user: $(Split-Path $ProfilePath -Leaf)"
 
         $possibleCachePaths = @("backup")
         foreach ($cachePath in $possibleCachePaths) {
@@ -459,13 +460,13 @@ Function Clear-NotepadPP {
 
         $possibleCacheFiles = @("config.xml", "session.xml")
         foreach ($cacheFile in $possibleCacheFiles) {
-            Remove-File (Join-Path $path $cacheFile)
+            Remove-Path (Join-Path $path $cacheFile)
         }
 
-        Write-Log "Notepad++ cleanup completed for user: $User"
+        Write-Log "Notepad++ cleanup completed for user: $(Split-Path $ProfilePath -Leaf)"
     }
     else {
-        Write-Log "Notepad++ not found for user: $User (skipped)" "DarkGray"
+        Write-Log "Notepad++ not found for user: $(Split-Path $ProfilePath -Leaf) (skipped)" "DarkGray"
     }
 }
 
@@ -475,56 +476,54 @@ function Clear-DuplicateOldDrivers {
 	#https://github.com/maxbakhub/winposh/blob/main/WindowsDesktopManagement/RemoveOldDuplicateDrivers.ps1
 	$dismOut = dism /online /get-drivers
 	$Lines = $dismOut | select -Skip 10
-	$Operation = "theName"
 	$Drivers = @()
-	foreach ( $Line in $Lines ) {
-		$tmp = $Line
-		$txt = $($tmp.Split( ':' ))[1]
-		switch ($Operation) {
-			'theName' { $Name = $txt
-						 $Operation = 'theFileName'
-						 break
-					   }
-			'theFileName' { $FileName = $txt.Trim()
-							 $Operation = 'theEntr'
-							 break
-						   }
-			'theEntr' { $Entr = $txt.Trim()
-						 $Operation = 'theClassName'
-						 break
-					   }
-			'theClassName' { $ClassName = $txt.Trim()
-							  $Operation = 'theVendor'
-							  break
-							}
-			'theVendor' { $Vendor = $txt.Trim()
-						   $Operation = 'theDate'
-						   break
-						 }
-			'theDate' { # we'll change the default date format for easy sorting
-						 $tmp = $txt.split( '.' )
-						 $txt = "$($tmp[2]).$($tmp[1]).$($tmp[0].Trim())"
-						 $Date = $txt
-						 $Operation = 'theVersion'
-						 break
-					   }
-			'theVersion' { $Version = $txt.Trim()
-							$Operation = 'theNull'
-							$params = [ordered]@{ 'FileName' = $FileName
-												  'Vendor' = $Vendor
-												  'Date' = $Date
-												  'Name' = $Name
-												  'ClassName' = $ClassName
-												  'Version' = $Version
-												  'Entr' = $Entr
-												}
-							$obj = New-Object -TypeName PSObject -Property $params
-							$Drivers += $obj
-							break
-						  }
-			 'theNull' { $Operation = 'theName'
-						  break
-						 }
+	$current = @{}
+	foreach ($line in $Lines) {
+		if ([string]::IsNullOrWhiteSpace($line)) {
+			if ($current.Count -gt 0) {
+				$Drivers += [PSCustomObject]@{
+					FileName  = $current['FileName']
+					Vendor    = $current['Vendor']
+					Date      = $current['Date']
+					Name      = $current['Name']
+					ClassName = $current['ClassName']
+					Version   = $current['Version']
+					Entr      = $current['Entr']
+				}
+				$current = @{}
+			}
+			continue
+		}
+		if ($line -match '^(.+?):\s*(.+)$') {
+			$field = $matches[1].Trim()
+			$value = $matches[2].Trim()
+			switch -Wildcard ($field) {
+				'Publishing name*'         { $current['Name'] = $value }
+				'Driver package name*'     { $current['FileName'] = $value }
+				'Original file name*'      { if (-not $current.ContainsKey('FileName')) { $current['FileName'] = $value } }
+				'Provider name*'           { $current['Entr'] = $value }
+				'Class name*'              { $current['ClassName'] = $value }
+				'Driver name*'             { $current['Vendor'] = $value }
+				'Date*'                    {
+					$parts = $value.Split('.')
+					if ($parts.Count -eq 3) {
+						$value = "$($parts[2]).$($parts[1]).$($parts[0].Trim())"
+					}
+					$current['Date'] = $value
+				}
+				'Version*'                 { $current['Version'] = $value }
+			}
+		}
+	}
+	if ($current.Count -gt 0) {
+		$Drivers += [PSCustomObject]@{
+			FileName  = $current['FileName']
+			Vendor    = $current['Vendor']
+			Date      = $current['Date']
+			Name      = $current['Name']
+			ClassName = $current['ClassName']
+			Version   = $current['Version']
+			Entr      = $current['Entr']
 		}
 	}
 	$last = ''
@@ -538,15 +537,13 @@ function Clear-DuplicateOldDrivers {
 	$list = $NotUnique | select -ExpandProperty FileName -Unique
 	$ToDel = @()
 	foreach ( $Dr in $list ) {
-		# Write-Host "duplicate driver found" -ForegroundColor Yellow
 		$sel = $Drivers | where { $_.FileName -eq $Dr } | sort date -Descending | select -Skip 1
 		$sel | ft
 		$ToDel += $sel
 	}
-	# Write-Host "List of driver version  to remove" -ForegroundColor Red
 	$ToDel | ft
 	# Removing old driver versions
-	# Uncomment the Invoke-Expression to automatically remove old versions of device drivers
+	# Automatically removes old versions of duplicate device drivers
 	if ($ToDel) {
 		foreach ($item in $ToDel) {
 			$Name = $($item.Name).Trim()
@@ -556,8 +553,6 @@ function Clear-DuplicateOldDrivers {
 			$ClassName = $($item.ClassName).Trim()
 			$Version = $($item.Version).Trim()
 			$Entr = $($item.Entr).Trim()
-			
-			# Write-Host "deleting $Name" -ForegroundColor Yellow
 			
 			try {
 				Start-Process pnputil.exe -ArgumentList "/delete-driver $Name /force" -Wait
@@ -665,7 +660,7 @@ Function Araid-install-package {
 
     try {
         $response = Invoke-WebRequest -Uri https://raw.githubusercontent.com/angelics/post_cleanup/main/packages.json -UseBasicParsing
-        $FilePath = "$env:systemroot\Logs\packages.json"
+        $FilePath = "$env:SystemRoot\Logs\packages.json"
         $response.Content | Set-Content -Path $FilePath -Force
         Write-Log "Downloaded and saved packages.json to $FilePath"
     } catch {
@@ -759,25 +754,15 @@ function Araid-LegacyRepair {
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
-	Remove-File "$ConsoleHistory"
+	Remove-Path "$ConsoleHistory"
 	  
 	Write-Log "Repair started"
 	Write-Log "Started Dism Restore Health"
 	Start-Process cmd.exe -ArgumentList "/c Dism /Online /Cleanup-Image /RestoreHealth" -Wait -NoNewWindow
 
-<# 	# Start the job to monitor the CBS log
-	$job = Start-Job -ScriptBlock {
-		Get-Content -Path "$env:systemroot\Logs\CBS\CBS.log" -Tail 10 -Wait
-	}
-
-	# Start a new PowerShell console to display the job output
-	Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "while (\$true) { Receive-Job -Id $job.Id; Start-Sleep -Seconds 5 }" #>
-
 	Write-Log "Started System File Checker"
 	Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
 
-<# 	Stop-Job -Id $job.Id
-	Remove-Job -Id $job.Id #>
 	
 	$sourceFile = "$env:SystemRoot\Logs\CBS\CBS.log"
 	$timestamp  = Get-Date -Format "yyMMddHHmmss"
@@ -804,8 +789,6 @@ function Araid-LegacyRepair {
 		Write-Log "CBS.log not found, unable to analyze SFC results." "Yellow"
 	}
 	
-	#Write-Log "re-register all AppX packages for all users"
-	#Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml"}
 	Write-Log "Chkdsk on reboot"
     Start-Process cmd.exe -ArgumentList "/c echo y | chkdsk $env:homedrive /f" -Wait -NoNewWindow
 	
@@ -878,7 +861,7 @@ Function Araid-CleanAndRestart {
         if ($shortcutsToKeep -notcontains $shortcut.Name) {
 			$shortcutPath = $shortcut.FullName
             try {
-                Remove-File "$shortcutPath"
+                Remove-Path "$shortcutPath"
             }
             catch {
                 Write-Log "Failed to remove: $($shortcut.Name). Error: $_"
@@ -933,12 +916,6 @@ Function Araid-CleanAndRestart {
 	$value = 0
 	Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 
-	#$registryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
-	#$propertyName = 'DisableGraphRecentItems'
-	#$value = 1
-	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
-	#Write-Log "Disable Show Files from Office.com in File Explorer Home for All Users"
-
 	Write-Log "Open File Explorer to This PC"
 	$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 	$propertyName = 'LaunchTo'
@@ -971,7 +948,7 @@ Function Araid-CleanAndRestart {
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
-	Remove-File "$ConsoleHistory"
+	Remove-Path "$ConsoleHistory"
 	
 	# Clear typed history in File Explorer address bar
 	$registryPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths'
@@ -1032,34 +1009,34 @@ Function Araid-CleanAndRestart {
 
 	# Set wallpaper based on manufacturer
 	$Manufacturers = @(
-		"$env:systemroot\Web\Wallpaper\backgroundDefault.jpg",
-		"$env:systemroot\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
-		"$env:systemroot\Web\Wallpaper\Dell\01.jpg",
-		"$env:systemroot\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
-		"$env:systemroot\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
-		"$env:systemroot\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
-		"$env:systemroot\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
-		"$env:systemroot\Web\Wallpaper\dell\AFX_FHD.png",
-		"$env:systemroot\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
-		"$env:systemroot\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
-		"$env:systemroot\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
-		"$env:systemroot\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
-		"$env:systemroot\Web\Wallpaper\Lenovo\Black Burst.jpg",
-		"$env:systemroot\Web\Wallpaper\Lenovo\3.jpg",
-		"$env:systemroot\ASUS\wallpapers\ASUS.jpg",
-		"$env:systemroot\Web\Wallpaper\acer01.jpg",
-		"$env:systemroot\Web\Wallpaper\WALLPAPER.jpg",
-		"$env:systemroot\Web\Wallpaper\img0.jpg",
-		"$env:systemroot\Web\Wallpaper\Surface\Surface.jpg",
-		"$env:systemroot\Web\Wallpaper\MateBook\01.jpg",
-		"$env:systemroot\Web\Wallpaper\MateBook\Wallpaper01.jpg",
-		"$env:systemroot\Web\Wallpaper\Windows\img0.jpg"
+		"$env:SystemRoot\Web\Wallpaper\backgroundDefault.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Dell\01.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
+		"$env:SystemRoot\Web\Wallpaper\dell\AFX_FHD.png",
+		"$env:SystemRoot\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
+		"$env:SystemRoot\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
+		"$env:SystemRoot\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Lenovo\Black Burst.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Lenovo\3.jpg",
+		"$env:SystemRoot\ASUS\wallpapers\ASUS.jpg",
+		"$env:SystemRoot\Web\Wallpaper\acer01.jpg",
+		"$env:SystemRoot\Web\Wallpaper\WALLPAPER.jpg",
+		"$env:SystemRoot\Web\Wallpaper\img0.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Surface\Surface.jpg",
+		"$env:SystemRoot\Web\Wallpaper\MateBook\01.jpg",
+		"$env:SystemRoot\Web\Wallpaper\MateBook\Wallpaper01.jpg",
+		"$env:SystemRoot\Web\Wallpaper\Windows\img0.jpg"
 	)
 
 	foreach ($manufacturer in $Manufacturers) {
 		if (Test-Path $manufacturer) {
 			Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $manufacturer -Force
-			RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
+			Start-Process "rundll32.exe" -ArgumentList "user32.dll,UpdatePerUserSystemParameters" -NoNewWindow -Wait
 			Write-Log "successfully changed wallpaper with $manufacturer"
 			break
 		}
@@ -1101,21 +1078,6 @@ Function Araid-CleanAndRestart {
 	}
 
 	
-	#Write-Host "Further cleaning up windows update..."
-	#Start-Process dism -ArgumentList "/online /cleanup-image /StartComponentCleanup /ResetBase" -Wait -NoNewWindow
-	#Write-Log "dism /online /cleanup-image /StartComponentCleanup /ResetBase"
-	
-	#Start-Process cleanmgr.exe -ArgumentList "/d $env:homedrive" -Wait -NoNewWindow
-	#Write-Log "cleanmgr /d $env:homedrive"
-	
-	# Define the desired install date
-	#Write-log "Change installdate to current date"
-	#$DesiredDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-	#$registryPath="HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-	#$propertyName="InstallDate"
-	#$value = [int][double]::Parse((Get-Date $DesiredDate -UFormat %s))
-	#Set-RegistryProperty -registryPath $registryPath -propertyName $propertyName -value $value
 	
 	Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
 	Write-Log "Set-SmbClientConfiguration -RequireSecuritySignature false -Force"
@@ -1380,14 +1342,14 @@ function Move-Folder {
 
     $foldersToMove = @(
         @{ Source = "$env:homedrive\MSOCache"; DestinationRoot = "D:\homedrive" },
-        @{ Source = "$env:systemroot\SoftwareDistribution"; DestinationRoot = "D:\systemroot"; Service = "wuauserv" },
-        @{ Source = "$env:systemroot\Temp"; DestinationRoot = "D:\systemroot" },
-        @{ Source = "$env:systemroot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:SystemRoot\SoftwareDistribution"; DestinationRoot = "D:\systemroot"; Service = "wuauserv" },
+        @{ Source = "$env:SystemRoot\Temp"; DestinationRoot = "D:\systemroot" },
+        @{ Source = "$env:SystemRoot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
 		@{ Source = "$env:ProgramData\Package Cache"; DestinationRoot = "D:\ProgramData\Package Cache" },
-		#@{ Source = "$env:systemroot\Installer"; DestinationRoot = "D:\systemroot"; Service = "TrustedInstaller" } #msi installer will fail
-        #@{ Source = "$env:systemroot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs"; Service = "EventLog" }, #always fail
+		#@{ Source = "$env:SystemRoot\Installer"; DestinationRoot = "D:\systemroot"; Service = "TrustedInstaller" } #msi installer will fail
+        #@{ Source = "$env:SystemRoot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs"; Service = "EventLog" }, #always fail
         #@{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows"; Service = "EventLog" } #always fail
-		@{ Source = "$env:systemroot\Logs"; DestinationRoot = "D:\systemroot" }
+		@{ Source = "$env:SystemRoot\Logs"; DestinationRoot = "D:\systemroot" }
     )
 
     foreach ($folder in $foldersToMove) {
@@ -1439,10 +1401,10 @@ Function OEMofficeActivation {
 	Write-Host "Please wait..."
 	
 	# remove if exist
-	$ProvisionOffice = "$env:systemroot\araid\ProvisionOffice.ps1"
+	$ProvisionOffice = "$env:SystemRoot\araid\ProvisionOffice.ps1"
 	if (Test-Path -Path $ProvisionOffice) {
 		Write-Log "Remove ProvisionOffice.ps1"
-		Remove-File "$ProvisionOffice"
+		Remove-Path "$ProvisionOffice"
 	}
 	
 	Try {
@@ -1452,7 +1414,7 @@ Function OEMofficeActivation {
 	# Clear console history
 	$ConsoleHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
 	Write-Log "Clear console history"
-	Remove-File "$ConsoleHistory"
+	Remove-Path "$ConsoleHistory"
 	$oem = $false
 	
 	# Check Windows activation
@@ -1461,7 +1423,7 @@ Function OEMofficeActivation {
 		$oem = $true
     } else {
         Write-Log "Windows is not activated. Installing OEM SLP key from BIOS..."
-        $OEMKey = (Get-WmiObject -Query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
+        $OEMKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
 
         if ($OEMKey) {
             Write-Log "Detected OEM SLP Key: $OEMKey"
@@ -1590,7 +1552,7 @@ $button3.Add_Click({
     $result = [System.Windows.Forms.MessageBox]::Show("No Ragrets?", "Confirmation", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
     if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
         $allowClose = $true
-		$Form.Close()
+		$form.Close()
         Araid-CleanAndRestart
     }
 })
@@ -1608,7 +1570,7 @@ $button4.Location = New-Object System.Drawing.Point(50, 210)
 $button4.Size = New-Object System.Drawing.Size(190, 30)
 $button4.Add_Click({
 	$allowClose = $true
-	$Form.Close()
+	$form.Close()
 	Araid-LegacyRepair
 })
 
@@ -1640,7 +1602,7 @@ $button6.Location = New-Object System.Drawing.Point(50, 330)
 $button6.Size = New-Object System.Drawing.Size(190, 30)
 $button6.Add_Click({
 	$allowClose = $true
-	$Form.Close()
+	$form.Close()
 	OEMofficeActivation
 })
 
