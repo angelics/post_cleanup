@@ -1009,37 +1009,80 @@ Function Araid-CleanAndRestart {
 
 	# Set wallpaper based on manufacturer
 	$Manufacturers = @(
-		"$env:SystemRoot\Web\Wallpaper\backgroundDefault.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Dell\01.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
-		"$env:SystemRoot\Web\Wallpaper\dell\AFX_FHD.png",
-		"$env:SystemRoot\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
-		"$env:SystemRoot\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
-		"$env:SystemRoot\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Lenovo\Black Burst.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Lenovo\3.jpg",
-		"$env:SystemRoot\ASUS\wallpapers\ASUS.jpg",
-		"$env:SystemRoot\Web\Wallpaper\acer01.jpg",
-		"$env:SystemRoot\Web\Wallpaper\WALLPAPER.jpg",
-		"$env:SystemRoot\Web\Wallpaper\img0.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Surface\Surface.jpg",
-		"$env:SystemRoot\Web\Wallpaper\MateBook\01.jpg",
-		"$env:SystemRoot\Web\Wallpaper\MateBook\Wallpaper01.jpg",
-		"$env:SystemRoot\Web\Wallpaper\Windows\img0.jpg"
+		# Keep all your existing OEM wallpaper paths here.
+		"$env:systemroot\Web\Wallpaper\backgroundDefault.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\BlueLava_1112000xx_inspiron_wallpaper58095_16x9_72dpi_RGB.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\01.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\Win7 Blue 1920x1200.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\Win Blue 1920x1200.jpg",
+		"$env:systemroot\Web\Wallpaper\Dell\Wallpaper_Vostro_M13.jpg",
+		"$env:systemroot\Web\Wallpaper\Alienware\AW_ChromeHead_72dpi.jpg",
+		"$env:systemroot\Web\Wallpaper\dell\AFX_FHD.png",
+		"$env:systemroot\Web\Wallpaper\Hewlett-Packard Backgrounds\backgroundDefault.jpg",
+		"$env:systemroot\Web\Wallpaper\HP Backgrounds\backgroundDefault.jpg",
+		"$env:systemroot\System32\oobe\info\Wallpaper\backgroundDefault.jpg",
+		"$env:systemroot\Web\Wallpaper\Lenovo\LenovoWallpaper.jpg",
+		"$env:systemroot\Web\Wallpaper\Lenovo\Black Burst.jpg",
+		"$env:systemroot\Web\Wallpaper\Lenovo\3.jpg",
+		"$env:systemroot\ASUS\wallpapers\ASUS.jpg",
+		"$env:systemroot\Web\Wallpaper\acer01.jpg",
+		"$env:systemroot\Web\Wallpaper\WALLPAPER.jpg",
+		"$env:systemroot\Web\Wallpaper\img0.jpg",
+		"$env:systemroot\Web\Wallpaper\Surface\Surface.jpg",
+		"$env:systemroot\Web\Wallpaper\MateBook\01.jpg",
+		"$env:systemroot\Web\Wallpaper\MateBook\Wallpaper01.jpg"
 	)
 
+	$DefaultWallpaper = "$env:systemroot\Web\Wallpaper\Windows\img0.jpg"
+
+	# Priority 1: OEM wallpaper
+	$SelectedWallpaper = $null
+
 	foreach ($manufacturer in $Manufacturers) {
-		if (Test-Path $manufacturer) {
-			Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $manufacturer -Force
-			Start-Process "rundll32.exe" -ArgumentList "user32.dll,UpdatePerUserSystemParameters" -NoNewWindow -Wait
-			Write-Log "successfully changed wallpaper with $manufacturer"
+		if (Test-Path $manufacturer -PathType Leaf) {
+			$SelectedWallpaper = $manufacturer
 			break
 		}
+	}
+
+	# Priority 2: Windows Spotlight
+	if (-not $SelectedWallpaper) {
+		$BackgroundType = (Get-ItemProperty `
+			-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" `
+			-Name BackgroundType `
+			-ErrorAction SilentlyContinue).BackgroundType
+
+		$CurrentWallpaper = (Get-ItemProperty `
+			-Path "HKCU:\Control Panel\Desktop" `
+			-Name Wallpaper `
+			-ErrorAction SilentlyContinue).Wallpaper
+
+		if ($BackgroundType -eq 3 -and
+			$CurrentWallpaper -and
+			(Test-Path $CurrentWallpaper -PathType Leaf) -and
+			($CurrentWallpaper -ne $DefaultWallpaper)) {
+
+			$SelectedWallpaper = $CurrentWallpaper
+		}
+	}
+
+	# Priority 3: Default Windows wallpaper
+	if (-not $SelectedWallpaper -and
+		(Test-Path $DefaultWallpaper -PathType Leaf)) {
+
+		$SelectedWallpaper = $DefaultWallpaper
+	}
+
+	# Apply selected wallpaper
+	if ($SelectedWallpaper) {
+		Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" `
+			-Name Wallpaper -Value $SelectedWallpaper -Force
+
+		RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
+
+		Write-Log "Successfully changed wallpaper with $SelectedWallpaper"
+	} else {
+		Write-Log "No available wallpaper found"
 	}
 
 	# List all hidden devices
