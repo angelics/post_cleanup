@@ -763,7 +763,6 @@ function Araid-LegacyRepair {
 	Write-Log "Started System File Checker"
 	Start-Process cmd.exe -ArgumentList "/c sfc /scannow" -Wait -NoNewWindow
 
-	
 	$sourceFile = "$env:SystemRoot\Logs\CBS\CBS.log"
 	$timestamp  = Get-Date -Format "yyMMddHHmmss"
 	$pattern    = "\[SR\] Cannot repair member file"
@@ -784,6 +783,9 @@ function Araid-LegacyRepair {
 		catch {
 			Write-Log "Error while processing SFC results: $_" "Red"
 		}
+		
+		Invoke-Item -Path $sourceFile
+		
 	}
 	else {
 		Write-Log "CBS.log not found, unable to analyze SFC results." "Yellow"
