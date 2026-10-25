@@ -546,20 +546,32 @@ function Clear-DuplicateOldDrivers {
 	# Automatically removes old versions of duplicate device drivers
 	if ($ToDel) {
 		foreach ($item in $ToDel) {
-			$Name = $($item.Name).Trim()
-			$FileName = $($item.FileName).Trim()
-			$Vendor = $($item.Vendor).Trim()
-			$Date = $($item.Date).Trim()
-			$ClassName = $($item.ClassName).Trim()
-			$Version = $($item.Version).Trim()
-			$Entr = $($item.Entr).Trim()
+            $Name      = ([string]$item.Name).Trim()
+            $FileName  = ([string]$item.FileName).Trim()
+            $Vendor    = ([string]$item.Vendor).Trim()
+            $Date      = ([string]$item.Date).Trim()
+            $ClassName = ([string]$item.ClassName).Trim()
+            $Version   = ([string]$item.Version).Trim()
+            $Entr      = ([string]$item.Entr).Trim()
+
+            if ([string]::IsNullOrWhiteSpace($Name)) {
+                Write-Log "Skipped driver removal: missing published driver name." "Yellow"
+                continue
+            }
 			
-			try {
-				Start-Process pnputil.exe -ArgumentList "/delete-driver $Name /force" -Wait
-				Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
-			} catch {
-				Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr={$Entr}. Error: $_"
-			}
+            try {
+                $process = Start-Process pnputil.exe `
+                    -ArgumentList @("/delete-driver", $Name, "/force") `
+                    -Wait -PassThru -NoNewWindow
+
+                if ($process.ExitCode -eq 0) {
+                    Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
+                } else {
+                    Write-Log "Failed to remove driver: Name=$Name, ExitCode=$($process.ExitCode), FileName=$FileName"
+                }
+            } catch {
+                Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName. Error: $_"
+            }
 		}
 	} else {
         Write-Log "No old or duplicate drivers to remove."
@@ -1594,11 +1606,31 @@ $button3.Text = "3. Clean and Restart"
 $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
-    $result = [System.Windows.Forms.MessageBox]::Show("No Ragrets?", "Confirmation", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
-    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-        $allowClose = $true
-		$form.Close()
-        Araid-CleanAndRestart
+    try {
+        $result = [System.Windows.Forms.MessageBox]::Show(
+            "No Ragrets?",
+            "Confirmation",
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+        )
+
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            $allowClose = $true
+            $form.Close()
+            Araid-CleanAndRestart
+        }
+    }
+    catch {
+        $details = $_ | Format-List * -Force | Out-String
+
+        Write-Log "Clean and Restart crashed: $details" "Red"
+
+        [System.Windows.Forms.MessageBox]::Show(
+            "Operation failed. Check the log at:`n$log`n`n$($_.Exception.Message)",
+            "Script Error",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
     }
 })
 
