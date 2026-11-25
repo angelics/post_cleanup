@@ -1048,54 +1048,44 @@ Function Araid-CleanAndRestart {
 
 	$DefaultWallpaper = "$env:systemroot\Web\Wallpaper\Windows\img0.jpg"
 
-	# Priority 1: OEM wallpaper
-	$SelectedWallpaper = $null
+	# Windows Spotlight owns the wallpaper; do not reapply it as a static image.
+	$BackgroundType = (Get-ItemProperty `
+		-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" `
+		-Name BackgroundType `
+		-ErrorAction SilentlyContinue).BackgroundType
 
-	foreach ($manufacturer in $Manufacturers) {
-		if (Test-Path $manufacturer -PathType Leaf) {
-			$SelectedWallpaper = $manufacturer
-			break
+	if ($BackgroundType -eq 3) {
+		Write-Log "Windows Spotlight is on; wallpaper unchanged"
+	}
+	else {
+		# Priority 1: OEM wallpaper
+		$SelectedWallpaper = $null
+
+		foreach ($manufacturer in $Manufacturers) {
+			if (Test-Path $manufacturer -PathType Leaf) {
+				$SelectedWallpaper = $manufacturer
+				break
+			}
 		}
-	}
 
-	# Priority 2: Windows Spotlight
-	if (-not $SelectedWallpaper) {
-		$BackgroundType = (Get-ItemProperty `
-			-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" `
-			-Name BackgroundType `
-			-ErrorAction SilentlyContinue).BackgroundType
+		# Priority 2: Default Windows wallpaper
+		if (-not $SelectedWallpaper -and
+			(Test-Path $DefaultWallpaper -PathType Leaf)) {
 
-		$CurrentWallpaper = (Get-ItemProperty `
-			-Path "HKCU:\Control Panel\Desktop" `
-			-Name Wallpaper `
-			-ErrorAction SilentlyContinue).Wallpaper
-
-		if ($BackgroundType -eq 3 -and
-			$CurrentWallpaper -and
-			(Test-Path $CurrentWallpaper -PathType Leaf) -and
-			($CurrentWallpaper -ne $DefaultWallpaper)) {
-
-			$SelectedWallpaper = $CurrentWallpaper
+			$SelectedWallpaper = $DefaultWallpaper
 		}
-	}
 
-	# Priority 3: Default Windows wallpaper
-	if (-not $SelectedWallpaper -and
-		(Test-Path $DefaultWallpaper -PathType Leaf)) {
+		# Apply selected wallpaper
+		if ($SelectedWallpaper) {
+			Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" `
+				-Name Wallpaper -Value $SelectedWallpaper -Force
 
-		$SelectedWallpaper = $DefaultWallpaper
-	}
+			RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
 
-	# Apply selected wallpaper
-	if ($SelectedWallpaper) {
-		Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" `
-			-Name Wallpaper -Value $SelectedWallpaper -Force
-
-		RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
-
-		Write-Log "Successfully changed wallpaper with $SelectedWallpaper"
-	} else {
-		Write-Log "No available wallpaper found"
+			Write-Log "Successfully changed wallpaper with $SelectedWallpaper"
+		} else {
+			Write-Log "No available wallpaper found"
+		}
 	}
 
 	# List all hidden devices
