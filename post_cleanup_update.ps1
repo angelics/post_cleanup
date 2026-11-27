@@ -471,112 +471,209 @@ Function Clear-NotepadPP {
 }
 
 
-function Clear-DuplicateOldDrivers {
-	
-	#https://github.com/maxbakhub/winposh/blob/main/WindowsDesktopManagement/RemoveOldDuplicateDrivers.ps1
-	$dismOut = dism /online /get-drivers
-	$Lines = $dismOut | select -Skip 10
-	$Drivers = @()
-	$current = @{}
+function ConvertFrom-DismDate {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory = $true)]
+		[string]$Value
+	)
+
+	foreach ($format in @('M/d/yyyy', 'M/d/yyyy H:mm:ss', 'd.M.yyyy', 'yyyy-MM-dd')) {
+		$parsed = [datetime]::MinValue
+		if ([datetime]::TryParseExact($Value, $format, [cultureinfo]::InvariantCulture,
+				[Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+			return $parsed
+		}
+	}
+	return [datetime]::MinValue
+}
+
+function ConvertFrom-DismDriverOutput {
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory = $true)]
+		[AllowEmptyString()]
+		[string[]]$Lines
+	)
+
+	$drivers = @()
+	$current = $null
+
 	foreach ($line in $Lines) {
 		if ([string]::IsNullOrWhiteSpace($line)) {
-			if ($current.Count -gt 0) {
-				$Drivers += [PSCustomObject]@{
-					FileName  = $current['FileName']
-					Vendor    = $current['Vendor']
-					Date      = $current['Date']
-					Name      = $current['Name']
-					ClassName = $current['ClassName']
-					Version   = $current['Version']
-					Entr      = $current['Entr']
-				}
-				$current = @{}
+			if ($null -ne $current) {
+				$drivers += $current
+				$current = $null
 			}
 			continue
 		}
-		if ($line -match '^(.+?):\s*(.+)$') {
-			$field = $matches[1].Trim()
-			$value = $matches[2].Trim()
-			switch -Wildcard ($field) {
-				'Publishing name*'         { $current['Name'] = $value }
-				'Driver package name*'     { $current['FileName'] = $value }
-				'Original file name*'      { if (-not $current.ContainsKey('FileName')) { $current['FileName'] = $value } }
-				'Provider name*'           { $current['Entr'] = $value }
-				'Class name*'              { $current['ClassName'] = $value }
-				'Driver name*'             { $current['Vendor'] = $value }
-				'Date*'                    {
-					$parts = $value.Split('.')
-					if ($parts.Count -eq 3) {
-						$value = "$($parts[2]).$($parts[1]).$($parts[0].Trim())"
-					}
-					$current['Date'] = $value
-				}
-				'Version*'                 { $current['Version'] = $value }
+		if ($line -notmatch '^\s*([^:]+?)\s*:\s*(.*?)\s*$') { continue }
+
+		$field = $Matches[1].Trim()
+		$value = $Matches[2].Trim()
+
+		# A record starts at "Published name". Everything before it is DISM header noise,
+		# so no fixed line skip is needed.
+		if ($field -like 'Published name*') {
+			if ($null -ne $current) { $drivers += $current }
+			$current = [pscustomobject]@{
+				PublishedName    = $value
+				OriginalFileName = $null
+				ProviderName     = $null
+				ClassName        = $null
+				DriverName       = $null
+				Date             = [datetime]::MinValue
+				Version          = $null
 			}
+			continue
+		}
+		if ($null -eq $current) { continue }
+
+		switch -Wildcard ($field) {
+			'Driver package name*' { $current.OriginalFileName = $value }
+			'Original file name*'  { $current.OriginalFileName = $value }
+			'Provider name*'       { $current.ProviderName = $value }
+			'Class name*'          { $current.ClassName = $value }
+			'Driver name*'         { $current.DriverName = $value }
+			'Driver date*'         { $current.Date = ConvertFrom-DismDate -Value $value }
+			'Date*'                { $current.Date = ConvertFrom-DismDate -Value $value }
+			'Driver version*'      { $current.Version = $value }
+			'Version*'             { $current.Version = $value }
 		}
 	}
-	if ($current.Count -gt 0) {
-		$Drivers += [PSCustomObject]@{
-			FileName  = $current['FileName']
-			Vendor    = $current['Vendor']
-			Date      = $current['Date']
-			Name      = $current['Name']
-			ClassName = $current['ClassName']
-			Version   = $current['Version']
-			Entr      = $current['Entr']
-		}
+	if ($null -ne $current) { $drivers += $current }
+	return $drivers
+}
+
+function Get-InUseDriverInfNames {
+	[CmdletBinding()]
+	param()
+
+	$inUse = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+	try {
+		$present = @(Get-PnpDevice -PresentOnly -ErrorAction Stop)
+	} catch {
+		Write-Log "Could not query present devices; driver cleanup skipped." "Yellow"
+		return $null
 	}
-	$last = ''
-	$NotUnique = @()
-	foreach ( $Dr in $($Drivers | sort Filename) ) {
-		if ($Dr.FileName -eq $last  ) {  $NotUnique += $Dr  }
-		$last = $Dr.FileName
+	if ($present.Count -eq 0) { return ,$inUse }
+
+	try {
+		$props = @(Get-PnpDeviceProperty -InstanceId @($present.InstanceId) `
+			-KeyName 'DEVPKEY_Device_DriverInfPath' -ErrorAction Stop)
+	} catch {
+		Write-Log "Could not query in-use driver INF paths; driver cleanup skipped." "Yellow"
+		return $null
 	}
-	$NotUnique | sort FileName | ft
-	# search for duplicate drivers 
-	$list = $NotUnique | select -ExpandProperty FileName -Unique
+	foreach ($prop in $props) {
+		if ($prop.Data) { [void]$inUse.Add([string]$prop.Data) }
+	}
+	return ,$inUse
+}
+
+function Clear-DuplicateOldDrivers {
+	[CmdletBinding(SupportsShouldProcess = $true)]
+	param()
+
+	$dismOut = @(& dism /online /get-drivers 2>&1)
+	if ($LASTEXITCODE -ne 0) {
+		Write-Log "dism /online /get-drivers failed with exit code $LASTEXITCODE." "Yellow"
+		return
+	}
+
+	$Drivers = @(ConvertFrom-DismDriverOutput -Lines $dismOut)
+
+	# Published name (oemN.inf) is unique per package; duplicates share the vendor INF.
+	$groups = $Drivers |
+		Where-Object { -not [string]::IsNullOrWhiteSpace($_.OriginalFileName) } |
+		Group-Object -Property OriginalFileName
+
 	$ToDel = @()
-	foreach ( $Dr in $list ) {
-		$sel = $Drivers | where { $_.FileName -eq $Dr } | sort date -Descending | select -Skip 1
-		$sel | ft
-		$ToDel += $sel
+	foreach ($group in $groups) {
+		if ($group.Count -lt 2) { continue }
+		$sorted = $group.Group | Sort-Object -Property @(
+			@{ Expression = { $_.Date }; Descending = $true },
+			@{ Expression = {
+				try { [version]$_.Version } catch { [version]'0.0.0.0' }
+			}; Descending = $true }
+		)
+		$ToDel += @($sorted | Select-Object -Skip 1)
 	}
-	$ToDel | ft
-	# Removing old driver versions
-	# Automatically removes old versions of duplicate device drivers
-	if ($ToDel) {
-		foreach ($item in $ToDel) {
-            $Name      = ([string]$item.Name).Trim()
-            $FileName  = ([string]$item.FileName).Trim()
-            $Vendor    = ([string]$item.Vendor).Trim()
-            $Date      = ([string]$item.Date).Trim()
-            $ClassName = ([string]$item.ClassName).Trim()
-            $Version   = ([string]$item.Version).Trim()
-            $Entr      = ([string]$item.Entr).Trim()
 
-            if ([string]::IsNullOrWhiteSpace($Name)) {
-                Write-Log "Skipped driver removal: missing published driver name." "Yellow"
-                continue
-            }
-			
-            try {
-                $process = Start-Process pnputil.exe `
-                    -ArgumentList @("/delete-driver", $Name, "/force") `
-                    -Wait -PassThru -NoNewWindow
+	if (-not $ToDel) {
+		Write-Log "No old or duplicate drivers to remove."
+		return
+	}
 
-                if ($process.ExitCode -eq 0) {
-                    Write-Log "Successfully removed driver: Name=$Name, FileName=$FileName, Vendor=$Vendor, Date=$Date, ClassName=$ClassName, Version=$Version, Entr=$Entr"
-                } else {
-                    Write-Log "Failed to remove driver: Name=$Name, ExitCode=$($process.ExitCode), FileName=$FileName"
-                }
-            } catch {
-                Write-Log "Failed to remove driver: Name=$Name, FileName=$FileName. Error: $_"
-            }
+	$inUse = Get-InUseDriverInfNames
+	if ($null -eq $inUse) { return }
+
+	foreach ($item in $ToDel) {
+		$Name = [string]$item.PublishedName
+
+		# Argument crosses into a native command: only accept a driver-store INF name.
+		if ($Name -notmatch '^oem\d+\.inf$') {
+			Write-Log "Skipped driver removal: invalid published name '$Name'." "Yellow"
+			continue
 		}
-	} else {
-        Write-Log "No old or duplicate drivers to remove."
-    }
+		if ($inUse.Contains($Name)) {
+			Write-Log "Skipped in-use driver: $Name"
+			continue
+		}
+		if (-not $PSCmdlet.ShouldProcess($Name, 'Delete old duplicate driver package')) { continue }
 
+		try {
+			# No /force: pnputil refuses when a device still references the package.
+			$process = Start-Process pnputil.exe `
+				-ArgumentList @('/delete-driver', $Name) `
+				-Wait -PassThru -NoNewWindow
+			if ($process.ExitCode -eq 0) {
+				Write-Log "Removed driver: $Name (OriginalFileName=$($item.OriginalFileName), Provider=$($item.ProviderName), Version=$($item.Version))"
+			} else {
+				Write-Log "Failed to remove driver: $Name, ExitCode=$($process.ExitCode)" "Yellow"
+			}
+		} catch {
+			Write-Log "Failed to remove driver: $Name. Error: $_" "Yellow"
+		}
+	}
+}
+
+function Clear-UnknownDevices {
+	[CmdletBinding(SupportsShouldProcess = $true)]
+	param()
+
+	# Unknown status alone is not enough: present devices can be temporarily unknown.
+	# Stale ghosts are unknown AND not present.
+	$unknown = @(Get-PnpDevice -ErrorAction SilentlyContinue |
+		Where-Object { $_.Status -eq 'Unknown' -and -not $_.Present })
+
+	if (-not $unknown) {
+		Write-Log "No stale Unknown devices to remove."
+		return
+	}
+
+	$criticalClasses = @('Processor', 'Firmware', 'System', 'Computer', 'Volume')
+	foreach ($dev in $unknown) {
+		if ($criticalClasses -contains $dev.Class) {
+			Write-Log "Skipped $($dev.InstanceId): critical class $($dev.Class)." "Yellow"
+			continue
+		}
+		if (-not $PSCmdlet.ShouldProcess($dev.InstanceId, 'Remove stale device')) { continue }
+
+		try {
+			$process = Start-Process -FilePath pnputil.exe `
+				-ArgumentList @('/remove-device', $dev.InstanceId) `
+				-NoNewWindow -Wait -PassThru
+			if ($process.ExitCode -eq 0) {
+				Write-Log "Removed stale device: $($dev.InstanceId)"
+			} else {
+				Write-Log "Failed to remove $($dev.InstanceId): ExitCode=$($process.ExitCode)" "Yellow"
+			}
+		} catch {
+			Write-Log "Failed to remove $($dev.InstanceId): $_" "Yellow"
+		}
+	}
 }
 
 function Get-WingetVersion {
@@ -1088,26 +1185,7 @@ Function Araid-CleanAndRestart {
 		}
 	}
 
-	# List all hidden devices
-	$unknown_devs = Get-PnpDevice | Where-Object{$_.Status -eq 'Unknown'}
-
-	if ($unknown_devs) {
-		# Loop through all hidden devices to remove them
-		ForEach($dev in $unknown_devs){
-			try {
-				# Run the command to remove the device
-				Start-Process -FilePath "pnputil.exe" -ArgumentList "/remove-device $($dev.InstanceId)" -NoNewWindow -Wait
-				# Log the successful removal
-				Write-Log "$($dev.InstanceId) has been removed"
-			}
-			catch {
-				# Log the error if the command fails
-				Write-Log "Failed to remove $($dev.InstanceId): $_"
-			}
-		}
-	} else {
-		Write-Log "No Unknown devices to remove."
-	}
+	Clear-UnknownDevices
 	
 	Clear-UserCacheFiles
 	Clear-GlobalWindowsCache
