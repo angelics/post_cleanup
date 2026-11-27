@@ -1208,8 +1208,13 @@ Function Araid-CleanAndRestart {
 	Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force
 	Write-Log "Set-SmbClientConfiguration -EnableInsecureGuestLogons true -Force"
 	
-	# Wait for user confirmation
-	Read-Host -Prompt "Press Enter to restart the computer..."
+	# Restart automatically after cleanup
+	Write-Log "Cleanup complete. Restarting computer now."
+	try {
+		Restart-Computer -Force -ErrorAction Stop
+	} catch {
+		Write-Log "Automatic restart failed: $_" "Red"
+	}
 	
 }
 
@@ -1476,45 +1481,102 @@ function Move-Folder {
 		@{ Source = "$env:SystemRoot\Logs"; DestinationRoot = "D:\systemroot" }
     )
 
+    $allMovesSucceeded = $true
+
     foreach ($folder in $foldersToMove) {
         $source = $folder.Source
         $destinationRoot = $folder.DestinationRoot
 		$Service = $folder.Service
-		
-        if (Test-Path -Path $source) {
-            try {
-				# Stop the associated service if needed
-				if (-not [string]::IsNullOrEmpty($Service)) {
-					Stop-ServiceSafely -ServiceName $Service -TimeoutSeconds 120
-				}
-				
-                $folderName = [System.IO.Path]::GetFileName($source.TrimEnd('\'))
-                $destination = Join-Path -Path $destinationRoot -ChildPath $folderName
-                
-                # Move the folder
-                if (-not (Test-Path -Path $destination)) {
-                    Move-Item -Path $source -Destination $destination -Force -ErrorAction Stop
-                    Write-Log "Moved $source to $destination"
-                }
+		$movedByThisRun = $false
 
-                # Create junction
-                Start-Process cmd.exe -ArgumentList "/c MKLINK /J ""$source"" ""$destination""" -NoNewWindow -Wait
-                Write-Log "MKLINK /J $source $destination"
-					
-            } catch {
-                Write-Log "Error moving ${source}: $_"
+        $folderName = [System.IO.Path]::GetFileName($source.TrimEnd('\'))
+        $destination = Join-Path -Path $destinationRoot -ChildPath $folderName
+
+        $sourceItem = Get-Item -Path $source -Force -ErrorAction SilentlyContinue
+        $destinationExists = Test-Path -Path $destination
+        $isExpectedJunction = $false
+
+        if ($null -ne $sourceItem -and $sourceItem.LinkType -eq 'Junction') {
+            $destinationFullPath = [System.IO.Path]::GetFullPath($destination).TrimEnd('\')
+            foreach ($target in @($sourceItem.Target)) {
+                if ([string]::Equals([System.IO.Path]::GetFullPath($target).TrimEnd('\'), $destinationFullPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $isExpectedJunction = $true
+                    break
+                }
             }
+        }
+
+        if ($null -eq $sourceItem) {
+            if ($destinationExists) {
+                Write-Log "Folder missing at $source but data exists at $destination. Manual repair required." "Red"
+                $allMovesSucceeded = $false
+            } else {
+                Write-Log "Skipped $source (not found)" "DarkGray"
+            }
+            continue
+        }
+
+        if ($isExpectedJunction) {
+            Write-Log "Already moved: $source -> $destination" "DarkGray"
+            continue
+        }
+
+        if ($destinationExists) {
+            Write-Log "Destination already exists: $destination. Left $source unchanged." "Yellow"
+            $allMovesSucceeded = $false
+            continue
+        }
+
+        try {
+			# Stop the associated service if needed
+			if (-not [string]::IsNullOrEmpty($Service)) {
+				if (-not (Stop-ServiceSafely -ServiceName $Service -TimeoutSeconds 120)) {
+					throw "Service $Service could not be stopped"
+				}
+			}
+
+            Move-Item -Path $source -Destination $destination -Force -ErrorAction Stop
+            $movedByThisRun = $true
+            Write-Log "Moved $source to $destination"
+
+            New-Item -ItemType Junction -Path $source -Target $destination -ErrorAction Stop | Out-Null
+            Write-Log "Junction created: $source -> $destination"
+        } catch {
+            Write-Log "Error moving ${source}: $_" "Red"
+
+            if ($movedByThisRun -and -not (Test-Path -Path $source) -and (Test-Path -Path $destination)) {
+                try {
+                    Move-Item -Path $destination -Destination $source -Force -ErrorAction Stop
+                    Write-Log "Rolled back $source from $destination"
+                } catch {
+                    Write-Log "Rollback FAILED for ${source}. Data remains at ${destination}: $_" "Red"
+                }
+            } elseif ($movedByThisRun) {
+                Write-Log "Rollback skipped for ${source}: unexpected state. Data remains at ${destination}" "Red"
+            } elseif (Test-Path -Path $destination) {
+                Write-Log "Partial destination may remain at ${destination}; source is ${source}" "Yellow"
+            }
+
+            $allMovesSucceeded = $false
         }
     }
 	
-	if (Test-Path "D:\") {
-		Move-Pagefile -Drive "D:"
-		Write-Log "Pagefile moved successfully. Please reboot the system."
+	if ($allMovesSucceeded) {
+		if (Test-Path "D:\") {
+			if (Move-Pagefile -Drive "D:") {
+				Write-Log "Pagefile configured on D:. Reboot required; cleanup restart will apply it." "Yellow"
+			} else {
+				Write-Log "Pagefile configuration failed. Reboot not requested." "Red"
+			}
+		} else {
+			Write-Log "Drive D: not found. Pagefile move skipped." "Yellow"
+		}
 	} else {
-		Write-Log "Drive D: not found. Pagefile move skipped." "Yellow"
+		Write-Log "Pagefile move skipped: folder move failed." "Yellow"
 	}
 
     Write-Log "Move folder done."
+    return $allMovesSucceeded
 }
 
 Function OEMofficeActivation {
