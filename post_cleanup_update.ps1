@@ -33,7 +33,7 @@ Function Write-Log {
 
 $ErrorActionPreference = "Continue"
 trap {
-    Write-Log "Unhandled error (continuing): $_" "Red"
+    Write-Log "Error (continuing): $_" "Red"
     continue
 }
 
@@ -110,11 +110,13 @@ Function Clear-GlobalWindowsCache
 
 Function Clear-UserCacheFiles
 {
-    ForEach ($localUser in Get-ChildItem "C:\Users" -Directory |
-         Where-Object { $_.Name -notin @("Public","Default","Default User","All Users") })
+    Clear-WindowsSearch
 
-    {
-		$ProfilePath = $localUser.FullName
+    $profilePaths = @(Get-CimInstance -ClassName Win32_UserProfile -ErrorAction Stop |
+        Where-Object { -not $_.Special -and $_.LocalPath } |
+        Select-Object -ExpandProperty LocalPath)
+
+    foreach ($ProfilePath in $profilePaths) {
 		Clear-AcrobatCacheFiles $ProfilePath
         Clear-ChromeCacheFiles $ProfilePath
         Clear-DiscordCacheFiles $ProfilePath
@@ -124,12 +126,11 @@ Function Clear-UserCacheFiles
         Clear-SteamCacheFiles $ProfilePath
         Clear-TeamsCacheFiles $ProfilePath
         Clear-NotepadPP $ProfilePath
+        Clear-WindowsUserCacheFiles -ProfilePath $ProfilePath
     }
 	
-	Clear-WindowsUserCacheFiles
 	Clear-MicrosoftDefenderAntivirus
 	Clear-WindowsUpdateCache
-	Clear-WindowsSearch
 	
 }
 
@@ -137,42 +138,44 @@ Function Clear-UserCacheFiles
 #- Clear-WindowsUserCacheFiles                                     #
 #------------------------------------------------------------------#
 Function Clear-WindowsUserCacheFiles {
-	
-	#$env:appdata = C:\Users\LocalAdmin\AppData\Roaming
-	#$env:LOCALAPPDATA = C:\Users\LocalAdmin\AppData\Local
-	#$env:USERPROFILE = C:\Users\LocalAdmin
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Cache"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Recovery"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Internet Explorer\Tiles"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Terminal Server Client\Cache"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Caches"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\History\low"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IECompatCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IECompatUaCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\IEDownloadHistory"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\INetCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosoftWindows.Client.WebExperience_*\AC\INetCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\AC\INetCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Packages\MicrosoftWindows.Client.CBS_*\AC\INetCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.Windows.StartMenuExperienceHost_*\AC\INetCache"
-	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\INetCookies"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Temporary Internet Files"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\WebCache"
-    Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\WER"
-    Remove-SubFile "$env:LOCALAPPDATA\Temp"
-	Remove-SubFile "$env:LOCALAPPDATA\CrashDumps"
-	Remove-SubFile "$env:LOCALAPPDATA\D3DSCache" # DirectX Shader Cache
-	Remove-SubFile "$env:LOCALAPPDATA\Microsoft\Windows\Explorer" # Thumbnails
-	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState" # Clear Notepad history
-	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\" # Clear Microsoft Edge cache
-	Remove-SubFile "$env:APPDATA\Microsoft\Windows\Recent"
-    Remove-SubFile "$env:APPDATA\Microsoft\Windows\AutomaticDestinations"
-    Remove-SubFile "$env:APPDATA\Microsoft\Windows\CustomDestinations"
-	Remove-SubFile "$env:USERPROFILE\Downloads"
-	Remove-SubFile "$env:USERPROFILE\Pictures"
-	Remove-SubFile "$env:USERPROFILE\Music"
-	Remove-SubFile "$env:USERPROFILE\Videos"
-	Remove-SubFile "$env:USERPROFILE\Documents"
+    param([Parameter(Mandatory)][string]$ProfilePath)
+
+    $localAppData = Join-Path $ProfilePath "AppData\Local"
+    $appData = Join-Path $ProfilePath "AppData\Roaming"
+
+    Remove-SubFile "$localAppData\Microsoft\Internet Explorer\Cache"
+    Remove-SubFile "$localAppData\Microsoft\Internet Explorer\Recovery"
+    Remove-SubFile "$localAppData\Microsoft\Internet Explorer\Tiles"
+    Remove-SubFile "$localAppData\Microsoft\Terminal Server Client\Cache"
+    Remove-SubFile "$localAppData\Microsoft\Windows\Caches"
+    Remove-SubFile "$localAppData\Microsoft\Windows\History\low"
+    Remove-SubFile "$localAppData\Microsoft\Windows\IECompatCache"
+    Remove-SubFile "$localAppData\Microsoft\Windows\IECompatUaCache"
+    Remove-SubFile "$localAppData\Microsoft\Windows\IEDownloadHistory"
+    Remove-SubFile "$localAppData\Microsoft\Windows\INetCache"
+    Remove-SubFile "$localAppData\Packages\MicrosoftWindows.Client.WebExperience_*\AC\INetCache"
+    Remove-SubFile "$localAppData\Packages\Microsoft.DesktopAppInstaller_*\AC\INetCache"
+    Remove-SubFile "$localAppData\Packages\MicrosoftWindows.Client.CBS_*\AC\INetCache"
+    Remove-SubFile "$localAppData\Packages\Microsoft.Windows.StartMenuExperienceHost_*\AC\INetCache"
+    Remove-SubFile "$localAppData\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search"
+	Remove-SubFile "$localAppData\Microsoft\Windows\INetCookies"
+    Remove-SubFile "$localAppData\Microsoft\Windows\Temporary Internet Files"
+    Remove-SubFile "$localAppData\Microsoft\Windows\WebCache"
+    Remove-SubFile "$localAppData\Microsoft\Windows\WER"
+    Remove-SubFile "$localAppData\Temp"
+	Remove-SubFile "$localAppData\CrashDumps"
+	Remove-SubFile "$localAppData\D3DSCache" # DirectX Shader Cache
+	Remove-SubFile "$localAppData\Microsoft\Windows\Explorer" # Thumbnails
+	Remove-SubFile "$localAppData\Packages\Microsoft.WindowsNotepad_*\LocalState\TabState" # Clear Notepad history
+	Remove-SubFile "$localAppData\Packages\Microsoft.MicrosoftEdge_*\AC\#!001\MicrosoftEdge\Cache\" # Clear Microsoft Edge cache
+	Remove-SubFile "$appData\Microsoft\Windows\Recent"
+    Remove-SubFile "$appData\Microsoft\Windows\AutomaticDestinations"
+    Remove-SubFile "$appData\Microsoft\Windows\CustomDestinations"
+	Remove-SubFile "$ProfilePath\Downloads"
+	Remove-SubFile "$ProfilePath\Pictures"
+	Remove-SubFile "$ProfilePath\Music"
+	Remove-SubFile "$ProfilePath\Videos"
+	Remove-SubFile "$ProfilePath\Documents"
 	
 }
 
@@ -211,15 +214,7 @@ function Clear-WindowsUpdateCache {
 }
 
 function Clear-WindowsSearch {
-	
-	#$env:WINDIR = C:\Windows
-	
 	Stop-ServiceSafely -ServiceName "WSearch" -TimeoutSeconds 120
-	
-	# Delete Windows Search cache files
-	Remove-SubFile "$env:LOCALAPPDATA\Packages\Microsoft.Windows.Client.CBS_*\LocalState\Search"
-	Write-Log "Deleted Windows Search cache files"
-	
 }
 
 Function Remove-SubFile {
@@ -267,7 +262,10 @@ Function Remove-Path {
 
     if (Test-Path -Path $Path) {
         try {
-            Remove-Item -Path $Path -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $Path -Recurse -Force -ErrorAction Stop
+            if (Test-Path -Path $Path) {
+                throw "path still exists after removal"
+            }
             Write-Log "Removed: $Path"
         }
         catch {
@@ -316,7 +314,7 @@ Function Clear-MozillaTemplate {
     )
 
     if (Test-Path $path) {
-        $profiles = Get-ChildItem $path | Where-Object { $_.Name -match "default" }
+        $profiles = Get-ChildItem -LiteralPath $path -Directory -ErrorAction SilentlyContinue
         foreach ($profile in $profiles) {
             $AppDataPath = $profile.FullName
             $possibleCachePaths = @("cache", "cache2\entries", "cache2", "thumbnails", "webappsstore.sqlite", "chromeappstore.sqlite", "storage", "sessionstore-backups", "jumpListCache", "thumbnails")
@@ -337,8 +335,11 @@ Function Clear-MozillaTemplate {
 Function Clear-ChromeCacheFiles
 {
     param([string]$ProfilePath)
-    Clear-ChromeTemplate "$ProfilePath\AppData\Local\Google\Chrome\User Data\Default" "Browser Google Chrome"
-    Remove-SubFile "$ProfilePath\AppData\Local\Google\Chrome\User Data\SwReporter\"
+    $userData = Join-Path $ProfilePath "AppData\Local\Google\Chrome\User Data"
+    Get-ChildItem -LiteralPath $userData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        Clear-ChromeTemplate $_.FullName "Browser Google Chrome ($($_.Name))"
+    }
+    Remove-SubFile "$userData\SwReporter\"
 }
 
 #------------------------------------------------------------------#
@@ -347,9 +348,12 @@ Function Clear-ChromeCacheFiles
 Function Clear-EdgeCacheFiles
 {
     param([string]$ProfilePath)
-    Clear-ChromeTemplate "$ProfilePath\AppData\Local\Microsoft\Edge\User Data\Default" "Browser Microsoft Edge"
-    Remove-Path "$ProfilePath\AppData\Local\Microsoft\Edge\User Data\Default\*.TMP"
-    Remove-SubFile "$ProfilePath\AppData\Local\Microsoft\Edge\User Data\Default\CacheStorage"
+    $userData = Join-Path $ProfilePath "AppData\Local\Microsoft\Edge\User Data"
+    Get-ChildItem -LiteralPath $userData -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        Clear-ChromeTemplate $_.FullName "Browser Microsoft Edge ($($_.Name))"
+        Remove-Path "$($_.FullName)\*.TMP"
+        Remove-SubFile "$($_.FullName)\CacheStorage"
+    }
 }
 
 #------------------------------------------------------------------#
@@ -685,7 +689,7 @@ function Get-WingetVersion {
         # Convert to [version] type
         return [version]$wingetVersionString
     } catch {
-        Write-Error "Failed to parse winget version. $_"
+        Write-Log "Failed to parse winget version: $_" "Yellow"
         return [version]"0.0" # Return a default value if there's an error
     }
 	
@@ -837,8 +841,15 @@ function Araid-upgrade-package {
     }
 
     try {
-		Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod
-        Start-Process cmd.exe -ArgumentList "/c winget upgrade --include-unknown --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -Wait -NoNewWindow
+		$managementService = Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01"
+        $scanResult = Invoke-CimMethod -InputObject $managementService -MethodName UpdateScanMethod
+        if ($scanResult -and $scanResult.ReturnValue -ne 0) {
+            throw "UpdateScanMethod failed with return code $($scanResult.ReturnValue)"
+        }
+        $upgradeProcess = Start-Process cmd.exe -ArgumentList "/c winget upgrade --include-unknown --all --accept-package-agreements --accept-source-agreements --silent --disable-interactivity" -PassThru -Wait -NoNewWindow
+        if ($upgradeProcess.ExitCode -ne 0) {
+            throw "winget upgrade failed with exit code $($upgradeProcess.ExitCode)"
+        }
         Write-Log "Upgrade done."
     } catch {
         Write-Log "An error occurred during the upgrade: $_"
@@ -953,6 +964,7 @@ function Remove-RegistryPropertyAndLog {
 Function Araid-CleanAndRestart {
 
 	Clear-Host
+	$Error.Clear()
 
 	Write-Log "Cleaning started."
 	Write-Host "Please wait..."
@@ -1208,8 +1220,14 @@ Function Araid-CleanAndRestart {
 	Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force
 	Write-Log "Set-SmbClientConfiguration -EnableInsecureGuestLogons true -Force"
 	
-	# Restart automatically after cleanup
-	Write-Log "Cleanup complete. Restarting computer now."
+	# Errors are logged but do not stop cleanup; restart happens either way.
+	if ($Error.Count -gt 0) {
+		Write-Log "Cleanup finished with $($Error.Count) error(s); restarting anyway. Review logged errors." "Red"
+		$Error | ForEach-Object { Write-Log "Observed error (continued): $_" "Red" }
+	}
+	else {
+		Write-Log "Cleanup complete. Restarting computer now."
+	}
 	try {
 		Restart-Computer -Force -ErrorAction Stop
 	} catch {
@@ -1474,7 +1492,7 @@ function Move-Folder {
         @{ Source = "$env:SystemRoot\SoftwareDistribution"; DestinationRoot = "D:\systemroot"; Service = "wuauserv" },
         @{ Source = "$env:SystemRoot\Temp"; DestinationRoot = "D:\systemroot" },
         @{ Source = "$env:SystemRoot\LiveKernelReports"; DestinationRoot = "D:\systemroot" },
-		@{ Source = "$env:ProgramData\Package Cache"; DestinationRoot = "D:\ProgramData\Package Cache" },
+		@{ Source = "$env:ProgramData\Package Cache"; DestinationRoot = "D:\ProgramData" },
 		#@{ Source = "$env:SystemRoot\Installer"; DestinationRoot = "D:\systemroot"; Service = "TrustedInstaller" } #msi installer will fail
         #@{ Source = "$env:SystemRoot\System32\winevt\Logs"; DestinationRoot = "D:\systemroot\System32\winevt\Logs"; Service = "EventLog" }, #always fail
         #@{ Source = "$env:ProgramData\Microsoft\Windows\WER"; DestinationRoot = "D:\ProgramData\Microsoft\Windows"; Service = "EventLog" } #always fail
@@ -1534,6 +1552,9 @@ function Move-Folder {
 					throw "Service $Service could not be stopped"
 				}
 			}
+
+            $destinationParent = Split-Path -Path $destination -Parent
+            New-Item -ItemType Directory -Path $destinationParent -Force -ErrorAction Stop | Out-Null
 
             Move-Item -Path $source -Destination $destination -Force -ErrorAction Stop
             $movedByThisRun = $true
