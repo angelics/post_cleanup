@@ -31,6 +31,80 @@ Function Write-Log {
     }
 }
 
+function Backup-AraidLogFolder {
+    $source = Split-Path -Path $log -Parent
+    if (-not (Test-Path -Path $source -PathType Container)) {
+        Write-Log "Log folder not found; backup skipped: $source" "Yellow"
+        return
+    }
+
+    # Recovery partition created by diskpart: Windows RE type GUID + label "Recovery".
+    $partition = Get-Partition -ErrorAction SilentlyContinue |
+        Where-Object { ($_.GptType -replace '[{}]', '') -eq 'de94bba4-06d1-4d40-a16a-bfd50179d6ac' } |
+        Select-Object -First 1
+
+    if (-not $partition) {
+        Write-Log "Recovery partition not found; log backup skipped." "Yellow"
+        return
+    }
+
+    $volume = Get-Volume -FileSystemLabel 'Recovery' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Size -eq $partition.Size } |
+        Select-Object -First 1
+
+    if (-not $volume) {
+        Write-Log "Recovery partition not found; log backup skipped." "Yellow"
+        return
+    }
+
+    # Recovery partitions have no letter by default; borrow one, then release it.
+    $letter = if ($partition.DriveLetter) {
+        [string]$partition.DriveLetter
+    } else {
+        $used = @(Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Name)
+        @('R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z') |
+            Where-Object { $_ -notin $used } |
+            Select-Object -First 1
+    }
+
+    if (-not $letter) {
+        Write-Log "No free drive letter for Recovery backup; skipped." "Yellow"
+        return
+    }
+
+    $accessPath = "${letter}:\"
+    $destination = "${accessPath}araid"
+    $assigned = $false
+
+    try {
+        if (-not $partition.DriveLetter) {
+            Set-Partition -DiskNumber $partition.DiskNumber -PartitionNumber $partition.PartitionNumber -NewDriveLetter $letter -ErrorAction Stop
+            $assigned = $true
+        }
+
+        if ($destination -notmatch '^[A-Z]:\\araid$') {
+            throw "Unsafe backup destination: $destination"
+        }
+
+        if (Test-Path -Path $destination) {
+            Remove-Item -Path $destination -Recurse -Force -ErrorAction Stop
+        }
+        New-Item -ItemType Directory -Path $destination -Force -ErrorAction Stop | Out-Null
+        Copy-Item -Path (Join-Path $source '*') -Destination $destination -Recurse -Force -ErrorAction Stop
+        Write-Log "Mirrored $source to $destination"
+    } catch {
+        Write-Log "Log backup failed: $_" "Yellow"
+    } finally {
+        if ($assigned) {
+            try {
+                Remove-PartitionAccessPath -DiskNumber $partition.DiskNumber -PartitionNumber $partition.PartitionNumber -AccessPath $accessPath -ErrorAction Stop
+            } catch {
+                Write-Log "Failed to release Recovery drive letter ${letter}: $_" "Yellow"
+            }
+        }
+    }
+}
+
 $ErrorActionPreference = "Continue"
 trap {
     Write-Log "Error (continuing): $_" "Red"
@@ -42,8 +116,7 @@ if (!(Test-Path $logDirectory)) {
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 }
 
-# Reset log file once
-Remove-Item -Path $log -Force -ErrorAction SilentlyContinue
+Write-Log "=== Run started $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ==="
 
 Write-Log "System Information:"
 systeminfo | ForEach-Object {
@@ -190,7 +263,7 @@ Function Clear-MicrosoftDefenderAntivirus
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\History\Results\System"
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Scans\mpenginedb.db"
     Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Support"
-	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Definition Updates\{GUID}"
+	Remove-SubFile "$env:ProgramData\Microsoft\Windows Defender\Definition Updates\*"
     Remove-Path "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.bin"
     Remove-Path "$env:ProgramData\Microsoft\Windows Defender\Scans\mpcache-*.log"
 }
@@ -681,18 +754,14 @@ function Clear-UnknownDevices {
 }
 
 function Get-WingetVersion {
-	
     try {
         # Run winget --version and remove any leading/trailing whitespace and the "v" prefix
         $wingetVersionString = (winget --version) -replace '^v', '' -replace '\s+', ''
-        
-        # Convert to [version] type
-        return [version]$wingetVersionString
+        return [version]::Parse($wingetVersionString)
     } catch {
         Write-Log "Failed to parse winget version: $_" "Yellow"
-        return [version]"0.0" # Return a default value if there's an error
+        return $null
     }
-	
 }
 
 function Check-Winget {
@@ -706,7 +775,11 @@ function Check-Winget {
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
         $wingetVersion = Get-WingetVersion
-        Write-Log "Winget detected. Version: $wingetVersion"
+        if ($null -eq $wingetVersion) {
+            Write-Log "Winget version could not be determined; skipping version check." "Yellow"
+        } else {
+            Write-Log "Winget detected. Version: $wingetVersion"
+        }
     } else {
         $wingetVersion = [version]"0.0"
         Write-Log "Winget not found"
@@ -714,7 +787,7 @@ function Check-Winget {
 
     $minVersion = [version]"1.6"
 
-    if ($wingetVersion -lt $minVersion) {
+    if ($null -ne $wingetVersion -and $wingetVersion -lt $minVersion) {
 
         Write-Log "Winget upgrade/install required (minimum $minVersion)" "Yellow"
 
@@ -1228,6 +1301,9 @@ Function Araid-CleanAndRestart {
 	else {
 		Write-Log "Cleanup complete. Restarting computer now."
 	}
+
+	Backup-AraidLogFolder
+
 	try {
 		Restart-Computer -Force -ErrorAction Stop
 	} catch {
@@ -1662,33 +1738,49 @@ Function OEMofficeActivation {
 Clear-Host
 kill-necessary
 
-# Check if the Win32 type already exists
-if (-not ([System.Management.Automation.PSTypeName]'Win32').Type) {
-    Add-Type @"
-    using System;
-    using System.Runtime.InteropServices;
+# Run long actions off the UI thread so the form stays responsive.
+function Invoke-LongAction {
+    param(
+        [Parameter(Mandatory)][System.Windows.Forms.Button]$Button,
+        [Parameter(Mandatory)][scriptblock]$Action
+    )
 
-    public class Win32 {
-        [DllImport("user32.dll")]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-        [DllImport("user32.dll")]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-        [DllImport("user32.dll")]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+    if ($script:activeWorker -and $script:activeWorker.IsBusy) { return }
 
-        public const int GWL_STYLE = -16;
-        public const int WS_MINIMIZEBOX = 0x00020000;
-        public const int WS_MAXIMIZEBOX = 0x00010000;
-        public const int WS_SYSMENU = 0x00080000;
-        public const int WS_THICKFRAME = 0x00040000; // disable resize
-        public const uint SWP_NOSIZE = 0x0001;
-        public const uint SWP_NOMOVE = 0x0002;
-        public const uint SWP_NOZORDER = 0x0004;
-        public const uint SWP_FRAMECHANGED = 0x0020;
-        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        public static readonly IntPtr HWND_TOP = IntPtr.Zero;
-    }
-"@
+    $script:activeWorkerAction = $Action
+    $script:activeWorkerButton = $Button
+    $Button.Enabled = $false
+    $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
+
+    $worker = New-Object System.ComponentModel.BackgroundWorker
+    $script:activeWorker = $worker
+
+    $worker.Add_DoWork({
+        param($sender, $e)
+        $e.Result = & $script:activeWorkerAction
+    })
+
+    $worker.Add_RunWorkerCompleted({
+        param($sender, $e)
+        $script:activeWorkerButton.Enabled = $true
+        $form.Cursor = [System.Windows.Forms.Cursors]::Default
+        $script:activeWorker = $null
+
+        if ($e.Error) {
+            $details = $e.Error | Format-List * -Force | Out-String
+            Write-Log "Action failed: $details" "Red"
+            [System.Windows.Forms.MessageBox]::Show(
+                "Operation failed. Check the log at:`n$log`n`n$($e.Error.Message)",
+                "Script Error",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            ) | Out-Null
+        }
+
+        Backup-AraidLogFolder
+    })
+
+    $worker.RunWorkerAsync()
 }
 
 # Create the form
@@ -1696,24 +1788,9 @@ $form = New-Object System.Windows.Forms.Form
 $form.Text = "Araid Scripts"
 $form.Size = New-Object System.Drawing.Size(480, 430)
 $form.TopMost = $true
-
-# Remove minimize, maximize, close buttons and disable form resize
-$form.Add_Shown({
-    $hWnd = $form.Handle
-    $currentStyle = [Win32]::GetWindowLong($hWnd, [Win32]::GWL_STYLE)
-    $newStyle = $currentStyle -band -bnot ([Win32]::WS_SYSMENU) -band -bnot ([Win32]::WS_THICKFRAME)
-    [Win32]::SetWindowLong($hWnd, [Win32]::GWL_STYLE, $newStyle)
-    [Win32]::SetWindowPos($hWnd, [Win32]::HWND_TOP, 0, 0, 0, 0, [Win32]::SWP_NOSIZE -bor [Win32]::SWP_NOMOVE -bor [Win32]::SWP_NOZORDER -bor [Win32]::SWP_FRAMECHANGED)
-})
-
-$allowClose = $false
-
-# Prevent the form from being closed
-$form.Add_FormClosing({
-    if (-not $allowClose) {
-        $_.Cancel = $true
-    }
-})
+$form.ControlBox = $true
+$form.MinimizeBox = $true
+$form.MaximizeBox = $false
 
 # Create label for install
 $label1 = New-Object System.Windows.Forms.Label
@@ -1727,7 +1804,7 @@ $button1.Text = "1. Install Package"
 $button1.Location = New-Object System.Drawing.Point(50, 30)
 $button1.Size = New-Object System.Drawing.Size(190, 30)
 $button1.Add_Click({
-	Araid-install-package
+	Invoke-LongAction -Button $button1 -Action { Araid-install-package }
 })
 
 # Create label for Upgrade
@@ -1742,7 +1819,7 @@ $button2.Text = "2. Upgrade Package"
 $button2.Location = New-Object System.Drawing.Point(50, 90)
 $button2.Size = New-Object System.Drawing.Size(190, 30)
 $button2.Add_Click({
-	Araid-upgrade-package
+	Invoke-LongAction -Button $button2 -Action { Araid-upgrade-package }
 })
 
 # Create label for Clean and Restart
@@ -1757,31 +1834,15 @@ $button3.Text = "3. Clean and Restart"
 $button3.Location = New-Object System.Drawing.Point(50, 150)
 $button3.Size = New-Object System.Drawing.Size(190, 30)
 $button3.Add_Click({
-    try {
-        $result = [System.Windows.Forms.MessageBox]::Show(
-            "No Ragrets?",
-            "Confirmation",
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Warning
-        )
+    $result = [System.Windows.Forms.MessageBox]::Show(
+        "No Ragrets?",
+        "Confirmation",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Warning
+    )
 
-        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-            $allowClose = $true
-            $form.Close()
-            Araid-CleanAndRestart
-        }
-    }
-    catch {
-        $details = $_ | Format-List * -Force | Out-String
-
-        Write-Log "Clean and Restart crashed: $details" "Red"
-
-        [System.Windows.Forms.MessageBox]::Show(
-            "Operation failed. Check the log at:`n$log`n`n$($_.Exception.Message)",
-            "Script Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        ) | Out-Null
+    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+        Invoke-LongAction -Button $button3 -Action { Araid-CleanAndRestart }
     }
 })
 
@@ -1797,9 +1858,7 @@ $button4.Text = "Legacy Repair"
 $button4.Location = New-Object System.Drawing.Point(50, 210)
 $button4.Size = New-Object System.Drawing.Size(190, 30)
 $button4.Add_Click({
-	$allowClose = $true
-	$form.Close()
-	Araid-LegacyRepair
+	Invoke-LongAction -Button $button4 -Action { Araid-LegacyRepair }
 })
 
 # Create label for Move Folder
@@ -1814,7 +1873,7 @@ $button5.Text = "Move Folder to D:\"
 $button5.Location = New-Object System.Drawing.Point(50, 270)
 $button5.Size = New-Object System.Drawing.Size(190, 30)
 $button5.Add_Click({
-	Move-Folder
+	Invoke-LongAction -Button $button5 -Action { Move-Folder }
 })
 
 # Create label for OEMofficeActivation
@@ -1829,9 +1888,7 @@ $button6.Text = "OEMofficeActivation"
 $button6.Location = New-Object System.Drawing.Point(50, 330)
 $button6.Size = New-Object System.Drawing.Size(190, 30)
 $button6.Add_Click({
-	$allowClose = $true
-	$form.Close()
-	OEMofficeActivation
+	Invoke-LongAction -Button $button6 -Action { OEMofficeActivation }
 })
 
 # Add buttons to the form
