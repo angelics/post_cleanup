@@ -1405,8 +1405,8 @@ Function Set-OEMRegistry {
 Function Is-WindowsActivated {
     try {
         $status = Get-CimInstance -Class SoftwareLicensingProduct `
-            | Where-Object { $_.PartialProductKey -and $_.LicenseStatus -eq 1 }
-        return $status -ne $null
+            -Filter "ApplicationId = '55c92734-d682-4d71-983e-d6ec3f16059f' AND LicenseStatus = 1 AND PartialProductKey IS NOT NULL AND LicenseIsAddon = False"
+        return [bool]$status
     } catch {
         return $false
     }
@@ -1612,8 +1612,9 @@ Function OEMofficeActivation {
         $OEMKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
 
         if ($OEMKey) {
-            Write-Log "Detected OEM SLP Key: $OEMKey"
-            Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ipk $OEMKey" -Wait
+            Write-Log "OEM SLP key found in BIOS (value redacted)."
+            $sls = Get-CimInstance -ClassName SoftwareLicensingService
+            $null = Invoke-CimMethod -InputObject $sls -MethodName InstallProductKey -Arguments @{ ProductKey = $OEMKey }
             Start-Process -FilePath "cscript.exe" -ArgumentList "/Nologo C:\Windows\System32\slmgr.vbs /ato" -Wait
             Write-Log "Windows activation attempted."
 			$oem = $true
