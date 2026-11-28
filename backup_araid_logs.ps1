@@ -32,7 +32,10 @@ function Backup-AraidLogFolder {
 
     # Recovery partition created by diskpart: Windows RE type GUID + label "Recovery".
     $partition = Get-Partition -ErrorAction SilentlyContinue |
-        Where-Object { ($_.GptType -replace '[{}]', '') -eq 'de94bba4-06d1-4d40-a16a-bfd50179d6ac' } |
+        Where-Object {
+            ($_.GptType -replace '[{}]', '') -eq 'de94bba4-06d1-4d40-a16a-bfd50179d6ac' -and
+            (Get-Volume -Partition $_ -ErrorAction SilentlyContinue).FileSystemLabel -eq 'Recovery'
+        } |
         Select-Object -First 1
 
     if (-not $partition) {
