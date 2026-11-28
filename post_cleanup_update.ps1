@@ -176,9 +176,14 @@ Function Clear-UserCacheFiles
 {
     Clear-WindowsSearch
 
-    $profilePaths = @(Get-CimInstance -ClassName Win32_UserProfile -ErrorAction Stop |
-        Where-Object { -not $_.Special -and $_.LocalPath } |
-        Select-Object -ExpandProperty LocalPath)
+    $profilePaths = @()
+    try {
+        $profilePaths = @(Get-CimInstance -ClassName Win32_UserProfile -ErrorAction Stop |
+            Where-Object { -not $_.Special -and $_.LocalPath } |
+            Select-Object -ExpandProperty LocalPath)
+    } catch {
+        Write-Log "Unable to enumerate user profiles; per-user cache cleanup skipped: $_" "Yellow"
+    }
 
     foreach ($ProfilePath in $profilePaths) {
 		Clear-AcrobatCacheFiles $ProfilePath
