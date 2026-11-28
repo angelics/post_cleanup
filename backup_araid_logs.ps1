@@ -40,15 +40,6 @@ function Backup-AraidLogFolder {
         return
     }
 
-    $volume = Get-Volume -FileSystemLabel 'Recovery' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Size -eq $partition.Size } |
-        Select-Object -First 1
-
-    if (-not $volume) {
-        Write-Log "Recovery partition not found; log backup skipped." "Yellow"
-        return
-    }
-
     # Recovery partitions have no letter by default; borrow one, then release it.
     $letter = if ($partition.DriveLetter) {
         [string]$partition.DriveLetter
