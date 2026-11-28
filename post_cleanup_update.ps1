@@ -1751,6 +1751,16 @@ function Invoke-LongAction {
     $ps = [powershell]::Create()
     $ps.Runspace = [runspacefactory]::CreateRunspace($iss)
     $ps.Runspace.Open()
+
+    # Runspace Write-Host goes to its information stream, not the console.
+    $script:actionMessages = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
+    $informationHandler = [System.EventHandler[System.Management.Automation.DataAddedEventArgs]] {
+        param($sender, $eventArgs)
+        $record = $sender[$eventArgs.Index]
+        [void]$script:actionMessages.Enqueue([string]$record.MessageData)
+    }
+    $ps.Streams.Information.add_DataAdded($informationHandler)
+
     [void]$ps.AddScript($Action.ToString())
     $script:actionAsync = $ps.BeginInvoke()
     $script:actionPs = $ps
@@ -1760,6 +1770,10 @@ function Invoke-LongAction {
     $timer.Interval = 100
     $script:actionTimer = $timer
     $timer.Add_Tick({
+        $message = $null
+        while ($script:actionMessages.TryDequeue([ref]$message)) {
+            Write-Host $message
+        }
         if (-not $script:actionAsync.IsCompleted) { return }
 
         $script:actionTimer.Stop()
@@ -1777,6 +1791,10 @@ function Invoke-LongAction {
                 [System.Windows.Forms.MessageBoxIcon]::Error
             ) | Out-Null
         } finally {
+            $message = $null
+            while ($script:actionMessages.TryDequeue([ref]$message)) {
+                Write-Host $message
+            }
             $button.Enabled = $true
             $form.Cursor = [System.Windows.Forms.Cursors]::Default
             $script:actionTimer.Dispose()
