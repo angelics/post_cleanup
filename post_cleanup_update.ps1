@@ -1295,6 +1295,20 @@ Function Araid-CleanAndRestart {
 
 	Backup-AraidLogFolder
 
+	$scriptFile = Join-Path -Path (Split-Path -Path $log -Parent) -ChildPath 'post_cleanup_update.ps1'
+	if (Test-Path -LiteralPath $scriptFile -PathType Leaf) {
+		try {
+			Remove-Item -LiteralPath $scriptFile -Force -ErrorAction Stop
+			if (Test-Path -LiteralPath $scriptFile) {
+				Write-Log "Failed to remove script: $scriptFile" "Yellow"
+			} else {
+				Write-Log "Removed script: $scriptFile"
+			}
+		} catch {
+			Write-Log "Failed to remove script ${scriptFile}: $_" "Yellow"
+		}
+	}
+
 	try {
 		Restart-Computer -Force -ErrorAction Stop
 	} catch {
