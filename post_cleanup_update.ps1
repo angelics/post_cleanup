@@ -1025,7 +1025,14 @@ function Araid-LegacyRepair {
     Start-Process cmd.exe -ArgumentList "/c echo y | chkdsk $env:homedrive /f" -Wait -NoNewWindow
 	
 	Read-Host -Prompt "Repair done. Press Enter to restart the computer..."
-	
+
+	try {
+		Write-Log "Legacy repair complete. Restarting computer now."
+		Restart-Computer -Force -ErrorAction Stop
+	} catch {
+		Write-Log "Automatic restart failed: $_" "Red"
+	}
+
 }
 
 function Remove-RegistryPathAndLog {
