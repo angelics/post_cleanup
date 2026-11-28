@@ -858,20 +858,45 @@ Function Araid-install-package {
     }
 
 	Write-Log "Start winget install, with default softwares using: $FilePath"
-	Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -Wait -NoNewWindow
+    $installSucceeded = $true
+    try {
+        $importProcess = Start-Process cmd.exe -ArgumentList "/c winget import -i $FilePath --ignore-unavailable --ignore-versions --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade" -PassThru -Wait -NoNewWindow
+        if ($importProcess.ExitCode -ne 0) {
+            $installSucceeded = $false
+            Write-Log "winget import failed with exit code $($importProcess.ExitCode)" "Yellow"
+        }
+    } catch {
+        $installSucceeded = $false
+        Write-Log "winget import failed: $_" "Yellow"
+    }
+
     # Check if WhatsApp is installed
     $whatsapp = winget list --id "9NKSQGP7F2NH" --exact --accept-source-agreements | Out-String
     if ($whatsapp -match "9NKSQGP7F2NH") {
         Write-Log "WhatsApp is already installed, skipping installation."
     } else {
         Write-Log "WhatsApp not found, installing..."
-        Start-Process cmd.exe -ArgumentList '/c winget install --id "9NKSQGP7F2NH" --exact --source msstore --accept-source-agreements --silent --disable-interactivity --accept-package-agreements --no-upgrade' -Wait -NoNewWindow
-        Write-Log "WhatsApp installation complete."
+        try {
+            $whatsappProcess = Start-Process cmd.exe -ArgumentList '/c winget install --id "9NKSQGP7F2NH" --exact --source msstore --accept-source-agreements --silent --disable-interactivity --accept-package-agreements --no-upgrade' -PassThru -Wait -NoNewWindow
+            if ($whatsappProcess.ExitCode -eq 0) {
+                Write-Log "WhatsApp installation complete."
+            } else {
+                $installSucceeded = $false
+                Write-Log "WhatsApp installation failed with exit code $($whatsappProcess.ExitCode)" "Yellow"
+            }
+        } catch {
+            $installSucceeded = $false
+            Write-Log "WhatsApp installation failed: $_" "Yellow"
+        }
     }
 	
     Remove-Item -Path $FilePath -Force
 
-	Write-Log "Install done."
+    if ($installSucceeded) {
+	    Write-Log "Install done."
+    } else {
+        Write-Log "Install finished with errors." "Yellow"
+    }
 }
 
 function Araid-upgrade-package {
@@ -1025,8 +1050,17 @@ function Remove-RegistryPropertyAndLog {
         # Check if the property exists before attempting to remove it
         $propertyExists = Get-ItemProperty -Path $RegistryPath -Name $PropertyName -ErrorAction SilentlyContinue
         if ($propertyExists -ne $null) {
-            Remove-ItemProperty -Path $RegistryPath -Name $PropertyName -Force
-            Write-Log ("Removed property $PropertyName from registry path $RegistryPath")
+            try {
+                Remove-ItemProperty -Path $RegistryPath -Name $PropertyName -Force -ErrorAction Stop
+                $remainingProperty = Get-ItemProperty -Path $RegistryPath -Name $PropertyName -ErrorAction SilentlyContinue
+                if ($null -eq $remainingProperty) {
+                    Write-Log ("Removed property $PropertyName from registry path $RegistryPath")
+                } else {
+                    Write-Log ("Failed to remove property ${PropertyName} from registry path ${RegistryPath}: still present") "Yellow"
+                }
+            } catch {
+                Write-Log ("Failed to remove property ${PropertyName} from registry path ${RegistryPath}: $_") "Yellow"
+            }
         } else {
             Write-Log "Property $PropertyName does not exist at path $RegistryPath"
         }
@@ -1470,8 +1504,12 @@ function kill-necessary {
 
     foreach ($task in $tasks) {
         try {
-            Start-Process cmd.exe -ArgumentList "/c taskkill /f /im $task" -NoNewWindow -Wait
-            Write-Log "Task killed: $task"
+            $killProcess = Start-Process cmd.exe -ArgumentList "/c taskkill /f /im $task" -NoNewWindow -Wait -PassThru
+            if ($killProcess.ExitCode -eq 0) {
+                Write-Log "Task killed: $task"
+            } else {
+                Write-Log "Failed to kill task ${task} (exit code $($killProcess.ExitCode))" "Yellow"
+            }
         } catch {
             Write-Log "Failed to kill task ${task}: $_" "Yellow"
         }
@@ -1691,7 +1729,11 @@ function Move-Folder {
 		Write-Log "Pagefile move skipped: folder move failed." "Yellow"
 	}
 
-    Write-Log "Move folder done."
+    if ($allMovesSucceeded) {
+        Write-Log "Move folder done."
+    } else {
+        Write-Log "Move folder finished with errors." "Yellow"
+    }
     return $allMovesSucceeded
 }
 
