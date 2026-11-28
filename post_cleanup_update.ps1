@@ -1766,14 +1766,8 @@ function Invoke-LongAction {
     $ps.Runspace = [runspacefactory]::CreateRunspace($iss)
     $ps.Runspace.Open()
 
-    # Runspace Write-Host goes to its information stream, not the console.
-    $script:actionMessages = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
-    $informationHandler = [System.EventHandler[System.Management.Automation.DataAddedEventArgs]] {
-        param($sender, $eventArgs)
-        $record = $sender[$eventArgs.Index]
-        [void]$script:actionMessages.Enqueue([string]$record.MessageData)
-    }
-    $ps.Streams.Information.add_DataAdded($informationHandler)
+    # Runspace Write-Host goes to its information stream; poll it on the UI thread.
+    $script:actionInfoCount = 0
 
     [void]$ps.AddScript($Action.ToString())
     $script:actionAsync = $ps.BeginInvoke()
@@ -1784,9 +1778,11 @@ function Invoke-LongAction {
     $timer.Interval = 100
     $script:actionTimer = $timer
     $timer.Add_Tick({
-        $message = $null
-        while ($script:actionMessages.TryDequeue([ref]$message)) {
+        $info = $script:actionPs.Streams.Information
+        while ($script:actionInfoCount -lt $info.Count) {
+            $message = [string]$info[$script:actionInfoCount].MessageData
             Write-Host $message
+            $script:actionInfoCount++
         }
         if (-not $script:actionAsync.IsCompleted) { return }
 
@@ -1805,9 +1801,11 @@ function Invoke-LongAction {
                 [System.Windows.Forms.MessageBoxIcon]::Error
             ) | Out-Null
         } finally {
-            $message = $null
-            while ($script:actionMessages.TryDequeue([ref]$message)) {
+            $info = $ps.Streams.Information
+            while ($script:actionInfoCount -lt $info.Count) {
+                $message = [string]$info[$script:actionInfoCount].MessageData
                 Write-Host $message
+                $script:actionInfoCount++
             }
             $button.Enabled = $true
             $form.Cursor = [System.Windows.Forms.Cursors]::Default
@@ -1817,6 +1815,7 @@ function Invoke-LongAction {
             $ps.Dispose()
             $script:actionTimer = $null
             $script:actionPs = $null
+            $script:actionInfoCount = 0
             $script:actionAsync = $null
             $script:actionButton = $null
             Backup-AraidLogFolder
