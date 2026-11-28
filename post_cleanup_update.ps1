@@ -1222,13 +1222,15 @@ Function Araid-CleanAndRestart {
 	$DefaultWallpaper = "$env:systemroot\Web\Wallpaper\Windows\img0.jpg"
 
 	# Windows Spotlight owns the wallpaper; do not reapply it as a static image.
+	# Fresh Windows 11 24H2 installs can run Spotlight with no explicit BackgroundType value,
+	# so an absent value must be treated as "leave wallpaper alone" too.
 	$BackgroundType = (Get-ItemProperty `
 		-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers" `
 		-Name BackgroundType `
 		-ErrorAction SilentlyContinue).BackgroundType
 
-	if ($BackgroundType -eq 3) {
-		Write-Log "Windows Spotlight is on; wallpaper unchanged"
+	if ($null -eq $BackgroundType -or $BackgroundType -eq 3) {
+		Write-Log "Windows Spotlight is on or wallpaper mode is unknown; wallpaper unchanged"
 	}
 	else {
 		# Priority 1: OEM wallpaper
