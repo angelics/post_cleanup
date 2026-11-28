@@ -1738,49 +1738,68 @@ Function OEMofficeActivation {
 Clear-Host
 kill-necessary
 
-# Run long actions off the UI thread so the form stays responsive.
+# Run long actions in a separate runspace so the form stays responsive.
 function Invoke-LongAction {
     param(
         [Parameter(Mandatory)][System.Windows.Forms.Button]$Button,
         [Parameter(Mandatory)][scriptblock]$Action
     )
 
-    if ($script:activeWorker -and $script:activeWorker.IsBusy) { return }
+    if ($script:actionPs) { return }
 
-    $script:activeWorkerAction = $Action
-    $script:activeWorkerButton = $Button
     $Button.Enabled = $false
     $form.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
 
-    $worker = New-Object System.ComponentModel.BackgroundWorker
-    $script:activeWorker = $worker
+    $iss = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault2()
+    foreach ($command in Get-Command -CommandType Function | Where-Object { -not $_.ModuleName }) {
+        $iss.Commands.Add([System.Management.Automation.Runspaces.SessionStateFunctionEntry]::new($command.Name, $command.Definition))
+    }
+    $iss.Variables.Add([System.Management.Automation.Runspaces.SessionStateVariableEntry]::new('log', $log, ''))
+    $iss.Variables.Add([System.Management.Automation.Runspaces.SessionStateVariableEntry]::new('wingetChecked', $global:wingetChecked, ''))
 
-    $worker.Add_DoWork({
-        param($sender, $e)
-        $e.Result = & $script:activeWorkerAction
-    })
+    $ps = [powershell]::Create()
+    $ps.Runspace = [runspacefactory]::CreateRunspace($iss)
+    $ps.Runspace.Open()
+    [void]$ps.AddScript($Action.ToString())
+    $script:actionAsync = $ps.BeginInvoke()
+    $script:actionPs = $ps
+    $script:actionButton = $Button
 
-    $worker.Add_RunWorkerCompleted({
-        param($sender, $e)
-        $script:activeWorkerButton.Enabled = $true
-        $form.Cursor = [System.Windows.Forms.Cursors]::Default
-        $script:activeWorker = $null
+    $timer = New-Object System.Windows.Forms.Timer
+    $timer.Interval = 100
+    $script:actionTimer = $timer
+    $timer.Add_Tick({
+        if (-not $script:actionAsync.IsCompleted) { return }
 
-        if ($e.Error) {
-            $details = $e.Error | Format-List * -Force | Out-String
+        $script:actionTimer.Stop()
+        $ps = $script:actionPs
+        $button = $script:actionButton
+        try {
+            $ps.EndInvoke($script:actionAsync) | Out-Null
+        } catch {
+            $details = $_ | Format-List * -Force | Out-String
             Write-Log "Action failed: $details" "Red"
             [System.Windows.Forms.MessageBox]::Show(
-                "Operation failed. Check the log at:`n$log`n`n$($e.Error.Message)",
+                "Operation failed. Check the log at:`n$log`n`n$($_.Exception.Message)",
                 "Script Error",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
             ) | Out-Null
+        } finally {
+            $button.Enabled = $true
+            $form.Cursor = [System.Windows.Forms.Cursors]::Default
+            $script:actionTimer.Dispose()
+            $ps.Runspace.Close()
+            $ps.Runspace.Dispose()
+            $ps.Dispose()
+            $script:actionTimer = $null
+            $script:actionPs = $null
+            $script:actionAsync = $null
+            $script:actionButton = $null
+            Backup-AraidLogFolder
         }
-
-        Backup-AraidLogFolder
     })
-
-    $worker.RunWorkerAsync()
+    $timer.Start()
 }
 
 # Create the form
