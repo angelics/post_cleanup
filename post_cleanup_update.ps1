@@ -801,11 +801,23 @@ function Check-Winget {
             Write-Log "Installing Microsoft.UI.Xaml"
             Add-AppxPackage -Path $uiXaml -ForceApplicationShutdown
 
+            $vcLibsPath = Join-Path $temp "Microsoft.VCLibs.x64.14.00.Desktop.appx"
+            Write-Log "Downloading Microsoft.VCLibs"
+            Invoke-WebRequest `
+                -Uri "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" `
+                -OutFile $vcLibsPath -UseBasicParsing
+
             Write-Log "Installing Microsoft.VCLibs"
-            Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" -ForceApplicationShutdown
+            Add-AppxPackage -Path $vcLibsPath -ForceApplicationShutdown
+
+            $wingetPath = Join-Path $temp "Microsoft.DesktopAppInstaller.msixbundle"
+            Write-Log "Downloading winget"
+            Invoke-WebRequest `
+                -Uri "https://aka.ms/getwinget" `
+                -OutFile $wingetPath -UseBasicParsing
 
             Write-Log "Installing winget"
-            Add-AppxPackage -Path "https://aka.ms/getwinget" -ForceApplicationShutdown
+            Add-AppxPackage -Path $wingetPath -ForceApplicationShutdown
 
         } catch {
             Write-Log "Winget installation failed: $_" "Red"
