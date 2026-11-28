@@ -553,7 +553,7 @@ function ConvertFrom-DismDate {
 			return $parsed
 		}
 	}
-	return [datetime]::MinValue
+	return $null
 }
 
 function ConvertFrom-DismDriverOutput {
@@ -590,7 +590,7 @@ function ConvertFrom-DismDriverOutput {
 				ProviderName     = $null
 				ClassName        = $null
 				DriverName       = $null
-				Date             = [datetime]::MinValue
+				Date             = $null
 				Version          = $null
 			}
 			continue
@@ -659,8 +659,9 @@ function Clear-DuplicateOldDrivers {
 
 	$ToDel = @()
 	foreach ($group in $groups) {
-		if ($group.Count -lt 2) { continue }
-		$sorted = $group.Group | Sort-Object -Property @(
+		$candidates = @($group.Group | Where-Object { $null -ne $_.Date })
+		if ($candidates.Count -lt 2) { continue }
+		$sorted = $candidates | Sort-Object -Property @(
 			@{ Expression = { $_.Date }; Descending = $true },
 			@{ Expression = {
 				try { [version]$_.Version } catch { [version]'0.0.0.0' }
